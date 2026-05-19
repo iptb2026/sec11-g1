@@ -44,3 +44,12 @@ frontend/    → React or Vue application
 database/    → Schema and migration files
 nginx/       → Server configuration
 docs/        → Documentation and API specs
+
+## 📦 Release Plan
+
+This project follows the academic release cycle:
+
+- v1.0.0 – Prelim Phase (initial system setup)
+- v2.0.0 – Midterm Phase (core features implementation)
+- v3.0.0 – Semi-Final Phase (integration and improvements)
+- v4.0.0 – Final Phase (production-ready system)
