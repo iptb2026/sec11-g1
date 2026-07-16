@@ -17,7 +17,7 @@ The project is developed collaboratively by the assigned group as part of the co
 
 ### Team Members
 - Saturniño Vincent Mordeno
-- Member 3
+- Benn Carlo Weese
 - Member 4
 - Member 5
 - Member 6
