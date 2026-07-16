@@ -18,13 +18,8 @@ The project is developed collaboratively by the assigned group as part of the co
 ### Team Members
 - Saturniño Vincent Mordeno
 - Benn Carlo Weese
-<<<<<<< HEAD
 - Sean A. Delavin
 - Rajiv Ybraheem Litera Macabanding
-=======
-- Member 4
-- Member 5
->>>>>>> 8ed9deaf24796171e11118145eb5ca7eb3a8472a
 - Member 6
 - Paul John A. Salomon
 
