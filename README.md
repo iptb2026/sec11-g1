@@ -20,7 +20,7 @@ The project is developed collaboratively by the assigned group as part of the co
 - Benn Carlo Weese
 - Sean A. Delavin
 - Rajiv Ybraheem Litera Macabanding
-- Member 6
+- Nexgen Toyongan
 - Paul John A. Salomon
 
 ---
