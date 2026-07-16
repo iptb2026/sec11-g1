@@ -21,7 +21,7 @@ The project is developed collaboratively by the assigned group as part of the co
 - Member 4
 - Member 5
 - Member 6
-- Member 7 (if applicable)
+- Paul John A. Salomon
 
 ---
 
