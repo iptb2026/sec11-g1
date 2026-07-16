@@ -16,7 +16,7 @@ The project is developed collaboratively by the assigned group as part of the co
 - **Group Leader - 1 :**
 
 ### Team Members
-- Member 2
+- Saturniño Vincent Mordeno
 - Member 3
 - Member 4
 - Member 5
