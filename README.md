@@ -22,6 +22,7 @@ The project is developed collaboratively by the assigned group as part of the co
 - Rajiv Ybraheem Litera Macabanding
 - Nexgen Toyongan
 - Paul John A. Salomon
+- Rhen Carl B. Suan
 
 ---
 
