@@ -23,6 +23,7 @@ The project is developed collaboratively by the assigned group as part of the co
 - Nexgen Toyongan
 - Paul John A. Salomon
 - Rhen Carl B. Suan
+- Prince Bagual
 
 ---
 
