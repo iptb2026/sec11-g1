@@ -24,4 +24,4 @@ class FeeTypeOut(BaseModel):
     created_at: datetime
 
     class Config:
-        from_attributes = Tru
+        from_attributes = True
