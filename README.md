@@ -12,8 +12,8 @@ The project is developed collaboratively by the assigned group as part of the co
 
 ## 👥 Team Information
 
-- **Section: IT33
-- **Group Leader - 1 : Mike Kenjie A. Catarig
+- Section: IT33
+- Group Leader - 1 : Mike Kenjie A. Catarig
 
 ### Team Members
 - Saturniño Vincent Mordeno
