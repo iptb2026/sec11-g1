@@ -1,8 +1,8 @@
 class Settings:
     # --- Database ---
-    DB_USER: str = "root"
+    DB_USER: str = "admin"
     DB_PASSWORD: str = "1234"
-    DB_HOST: str = "0.0.0.0"
+    DB_HOST: str = "172.17.100.14"
     DB_PORT: int = 3306
     DB_NAME: str = "db"
 
