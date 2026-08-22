@@ -1,9 +1,9 @@
 class Settings:
-    # --- Database ---
-    DB_USER: str = "172.17.100.14"
-    DB_PASSWORD: str = "172.17.100.14"
-    DB_HOST: str = "0.0.0.0"
-    DB_PORT: int = 3801
+
+    DB_USER: str = "root"
+    DB_PASSWORD: str = "1234"  # The password you used in 'mysql -u root -p'
+    DB_HOST: str = "127.0.0.1"
+    DB_PORT: int = 3306
     DB_NAME: str = "delavin"
 
     @property
