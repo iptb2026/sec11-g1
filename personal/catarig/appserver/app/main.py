@@ -1,8 +1,16 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.database.session import Base, engine
+
+# ==== LAYER 1: Foundation & Reference Data ====
 from app.routers import roles, account_types, banks, fee_types
+
+# ==== LAYER 2: Identity & Access ====
+from app.routers import users, auth, sessions, audit_logs
+
+# Creates tables if they don't already exist
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
@@ -12,24 +20,13 @@ app.include_router(account_types.router)
 app.include_router(banks.router)
 app.include_router(fee_types.router)
 
+# ==== LAYER 2: Identity & Access ====
+app.include_router(users.router)
+app.include_router(auth.router)
+app.include_router(sessions.router)
+app.include_router(audit_logs.router)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
-    allow_credentials=False,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
-)
 
 @app.get("/", tags=["Health"])
 def root():
     return {"status": "ok", "app": settings.APP_NAME}
-
-@app.get("/", tags=["Root"], summary="Root endpoint")
-def hello():
-    return {"message": "Hello, World!"}
-
-
-@app.get("/hello", tags=["Hello"], summary="Hello endpoint")
-def hello_name():
-    return {"message": "Hello from FastAPI!"}
