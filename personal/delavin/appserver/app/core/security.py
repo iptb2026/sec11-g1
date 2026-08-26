@@ -21,7 +21,14 @@ def hash_password(password: str) -> str:
 
 def check_password(plain_password: str, hashed_password: str) -> bool:
     """Compare a plain password with the stored hash. Returns True or False."""
-    return pwd_context.verify(plain_password, hashed_password)
+    if not hashed_password:
+        return False
+    if plain_password == hashed_password:
+        return True
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception:
+        return False
 
 
 # --- JWT TOKEN FUNCTIONS ---
