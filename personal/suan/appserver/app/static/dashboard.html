@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head><title>Mini Bank — Dashboard</title></head>
+<body style="font-family: sans-serif; max-width: 700px; margin: 40px auto;">
+  <div style="display:flex; justify-content:space-between;">
+    <h2 id="welcome"></h2>
+    <button onclick="logout()">Log Out</button>
+  </div>
+  <p><b>Role:</b> <span id="role-label"></span></p>
+  <hr>
+
+  <div id="admin-section" style="display:none; background:#ffe9e9; padding:12px; margin-bottom:10px;">
+    <h3>Admin Panel</h3>
+    <p>Full access — view and delete any account.</p>
+    <button onclick="loadAccounts()">Load All Accounts</button>
+  </div>
+
+  <div id="staff-section" style="display:none; background:#eaf2ff; padding:12px; margin-bottom:10px;">
+    <h3>Staff Panel</h3>
+    <p>Can view all accounts and create new ones, cannot delete.</p>
+    <button onclick="loadAccounts()">Load All Accounts</button>
+    <button onclick="createAccountPrompt()">Create Account</button>
+  </div>
+
+  <div id="customer-section" style="display:none; background:#eaffea; padding:12px; margin-bottom:10px;">
+    <h3>My Account</h3>
+    <p>You can only view your own account(s).</p>
+    <button onclick="loadAccounts()">View My Accounts</button>
+  </div>
+
+  <ul id="account-list"></ul>
+
+  <script>
+    const token = sessionStorage.getItem('token');
+    const role = sessionStorage.getItem('role');
+    if (!token) window.location.href = '/static/login.html';
+
+    document.getElementById('welcome').innerText = `Welcome, ${sessionStorage.getItem('username')}`;
+    document.getElementById('role-label').innerText = role;
+    if (role === 'ADMIN') document.getElementById('admin-section').style.display = 'block';
+    if (role === 'STAFF') document.getElementById('staff-section').style.display = 'block';
+    if (role === 'CUSTOMER') document.getElementById('customer-section').style.display = 'block';
+
+    async function loadAccounts() {
+      const res = await fetch('/accounts/', { headers: { 'Authorization': `Bearer ${token}` } });
+      const list = document.getElementById('account-list');
+      list.innerHTML = '';
+      if (!res.ok) { list.innerHTML = '<li>Error loading accounts</li>'; return; }
+      const accounts = await res.json();
+      if (accounts.length === 0) { list.innerHTML = '<li><i>No accounts found.</i></li>'; return; }
+      accounts.forEach(a => {
+        const li = document.createElement('li');
+        li.innerText = `Account #${a.id} — user_id: ${a.user_id} — balance: ${a.available_balance}`;
+        if (role === 'ADMIN') {
+          const btn = document.createElement('button');
+          btn.innerText = 'Delete';
+          btn.style.marginLeft = '10px';
+          btn.onclick = () => deleteAccount(a.id);
+          li.appendChild(btn);
+        }
+        list.appendChild(li);
+      });
+    }
+
+    async function deleteAccount(id) {
+      await fetch(`/accounts/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      loadAccounts();
+    }
+
+    async function createAccountPrompt() {
+      const user_id = prompt('User ID for new account:');
+      const account_type_id = prompt('Account type ID:');
+      if (!user_id || !account_type_id) return;
+      await fetch('/accounts/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ user_id: parseInt(user_id), account_type_id: parseInt(account_type_id), available_balance: 0, ledger_balance: 0 })
+      });
+      alert('Account created (or check error in console)');
+    }
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = '/static/login.html';
+    }
+  </script>
+</body>
+</html>
