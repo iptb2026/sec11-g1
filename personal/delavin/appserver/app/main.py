@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.database.session import Base, engine
@@ -11,7 +12,8 @@ from app.routers import users, auth, sessions, audit_logs
 
 # ==== LAYER 3: Account Configuration ====
 from app.routers import accounts, withdrawal_limits, interest_policies
-...
+
+# ==== LAYER 4: Transactions ====
 from app.routers import deposits, withdrawals, transfers, interbank_transfers
 
 # ==== LAYER 5: Financial Records & Ledger ====
@@ -21,6 +23,14 @@ from app.routers import fee_records, interest_records, ledger_entries
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ==== LAYER 1: Foundation & Reference Data ====
 app.include_router(roles.router)
@@ -34,6 +44,7 @@ app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(audit_logs.router)
 
+# ==== LAYER 3: Account Configuration ====
 app.include_router(accounts.router)
 app.include_router(withdrawal_limits.router)
 app.include_router(interest_policies.router)
@@ -44,6 +55,7 @@ app.include_router(withdrawals.router)
 app.include_router(transfers.router)
 app.include_router(interbank_transfers.router)
 
+# ==== LAYER 5: Financial Records & Ledger ====
 app.include_router(fee_records.router)
 app.include_router(interest_records.router)
 app.include_router(ledger_entries.router)
