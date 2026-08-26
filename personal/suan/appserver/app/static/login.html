@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Mini Bank — Login</title></head>
+<body style="font-family: sans-serif; max-width: 400px; margin: 60px auto;">
+  <h2>Mini Banking System — Login</h2>
+  <input id="username" placeholder="Username" style="width:100%; padding:8px; margin:6px 0;"><br>
+  <input id="password" type="password" placeholder="Password" style="width:100%; padding:8px; margin:6px 0;"><br>
+  <button onclick="login()" style="width:100%; padding:8px;">Log In</button>
+  <p id="error" style="color:red;"></p>
+
+  <script>
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (!res.ok) {
+        document.getElementById('error').innerText = 'Invalid credentials';
+        return;
+      }
+      const data = await res.json();
+      sessionStorage.setItem('token', data.token);
+      sessionStorage.setItem('role', data.role);
+      sessionStorage.setItem('username', data.username);
+      sessionStorage.setItem('user_id', data.user_id);
+      window.location.href = '/static/dashboard.html';
+    }
+  </script>
+</body>
+</html>
