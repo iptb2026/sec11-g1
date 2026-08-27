@@ -37,11 +37,7 @@ def get_role(role_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{role_id}", response_model=RoleOut)
-def update_role(
-    role_id: int,
-    role_data: RoleCreate,
-    db: Session = Depends(get_db)
-):
+def update_role(role_id: int, role_data: RoleCreate, db: Session = Depends(get_db)):
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
@@ -61,7 +57,4 @@ def delete_role(role_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Role not found")
 
     db.delete(role)
-    commit_or_409(
-        db,
-        "Cannot delete this role — one or more users still reference it"
-    )
+    commit_or_409(db, "Cannot delete this role — one or more users still reference it")

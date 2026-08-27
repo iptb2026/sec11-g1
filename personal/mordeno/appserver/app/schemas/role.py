@@ -1,3 +1,4 @@
+# ==== LAYER 1: Foundation & Reference Data ====
 from datetime import datetime
 from typing import Optional
 
