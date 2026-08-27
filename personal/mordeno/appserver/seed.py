@@ -1,5 +1,5 @@
 """
-Seed script for Toyongan Mini Banking System.
+Seed script for Mordeno Mini Banking System.
 Creates roles, test users (Admin, Staff, Customer), reference banks, account types, and demo accounts.
 Run with: python seed.py
 """

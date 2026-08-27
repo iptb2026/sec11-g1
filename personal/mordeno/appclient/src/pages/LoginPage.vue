@@ -6,7 +6,7 @@
           <q-card-section class="text-center q-pb-none">
             <q-icon name="account_balance" size="48px" color="primary" />
             <div class="text-h5 q-mt-sm text-weight-bold text-primary">
-              Mini Banking System
+              Mordeno Banking System
             </div>
             <div class="text-caption text-grey-6 q-mt-xs">
               Sign in to your account

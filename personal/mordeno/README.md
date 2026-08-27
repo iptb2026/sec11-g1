@@ -1,4 +1,4 @@
-# ESPADA Banking System — Toyongan Frontend & API
+# Mordeno Banking System — Mordeno Frontend & API
 
 A full-stack banking interface and API implementation for the IPT2 final project submission. Built with **Vue 3**, **Quasar Framework**, **FastAPI**, and **MySQL**.
 
@@ -10,23 +10,23 @@ A full-stack banking interface and API implementation for the IPT2 final project
 > A fresh clone or new environment has **no database data**. You must run `python seed.py` once to create all 17 tables and default demo accounts before running the application.
 
 ### 1. Database & Seeding
-Ensure MySQL/MariaDB is running on port 3306 with database `toyongan`:
+Ensure MySQL/MariaDB is running on port 3306 with database `mordeno`:
 ```powershell
-cd personal\toyongan\appserver
+cd personal\mordeno\appserver
 python seed.py
 ```
 *(Creates all tables, roles, reference banks, account types, test users, and a customer account with ₱25,000 balance).*
 
 ### 2. Start Backend (Terminal 1)
 ```powershell
-cd personal\toyongan\appserver
+cd personal\mordeno\appserver
 python -m uvicorn app.main:app --host 127.0.0.1 --port 5002 --reload
 ```
 - API Docs: `http://127.0.0.1:5002/docs`
 
 ### 3. Start Frontend (Terminal 2)
 ```powershell
-cd personal\toyongan\appclient
+cd personal\mordeno\appclient
 npm install
 npm run dev -- --host 127.0.0.1 --port 9005
 ```
@@ -73,13 +73,13 @@ npm run dev -- --host 127.0.0.1 --port 9005
 
 ### Terminal 1: Database Setup & Seeding
 
-1. Ensure MySQL is running on port 3306 and database `toyongan` (or configured database) exists:
+1. Ensure MySQL is running on port 3306 and database `mordeno` (or configured database) exists:
    ```sql
-   CREATE DATABASE IF NOT EXISTS toyongan;
+   CREATE DATABASE IF NOT EXISTS mordeno;
    ```
 2. Navigate to the backend directory:
    ```bash
-   cd personal/toyongan/appserver
+   cd personal/mordeno/appserver
    ```
 3. Install Python dependencies:
    ```bash
@@ -92,7 +92,7 @@ npm run dev -- --host 127.0.0.1 --port 9005
 
 ### Terminal 2: Start Backend Server
 
-From `personal/toyongan/appserver`:
+From `personal/mordeno/appserver`:
 ```bash
 # Windows PowerShell:
 uvicorn app.main:app --host 127.0.0.1 --port 5002 --reload
@@ -105,9 +105,9 @@ uvicorn app.main:app --host 127.0.0.1 --port 5002 --reload
 
 ### Terminal 3: Start Frontend Application
 
-From `personal/toyongan/appclient`:
+From `personal/mordeno/appclient`:
 ```bash
-cd personal/toyongan/appclient
+cd personal/mordeno/appclient
 npm install
 npm run dev -- --host 127.0.0.1 --port 9005
 ```
@@ -117,21 +117,21 @@ npm run dev -- --host 127.0.0.1 --port 9005
 
 ## 4. Environment Variables
 
-### Frontend (`personal/toyongan/appclient/.env`)
+### Frontend (`personal/mordeno/appclient/.env`)
 ```ini
 # Backend API Base URL
 VITE_API_BASE_URL=http://127.0.0.1:5002
 ```
 
-### Backend (`personal/toyongan/appserver/app/core/config.py`)
+### Backend (`personal/mordeno/appserver/app/core/config.py`)
 Configurable via system environment variables:
 | Variable | Default Value | Description |
 |---|---|---|
-| `DB_USER` | `toyongan` | MySQL user |
+| `DB_USER` | `mordeno` | MySQL user |
 | `DB_PASSWORD` | `1234` | MySQL password |
 | `DB_HOST` | `127.0.0.1` | MySQL host address |
 | `DB_PORT` | `3306` | MySQL port |
-| `DB_NAME` | `toyongan` | Database schema name |
+| `DB_NAME` | `mordeno` | Database schema name |
 
 ---
 

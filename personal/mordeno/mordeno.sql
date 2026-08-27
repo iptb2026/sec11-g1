@@ -1,6 +1,6 @@
 -- MariaDB dump 10.19  Distrib 10.4.27-MariaDB, for Win64 (AMD64)
 --
--- Host: localhost    Database: toyongan
+-- Host: localhost    Database: mordeno
 -- ------------------------------------------------------
 -- Server version	10.4.27-MariaDB
 
@@ -16,12 +16,12 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: `toyongan`
+-- Current Database: `mordeno`
 --
 
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `toyongan` /*!40100 DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci */;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `mordeno` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */;
 
-USE `toyongan`;
+USE `mordeno`;
 
 --
 -- Table structure for table `account_types`
@@ -41,7 +41,7 @@ CREATE TABLE `account_types` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `type_code` (`type_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -50,7 +50,7 @@ CREATE TABLE `account_types` (
 
 LOCK TABLES `account_types` WRITE;
 /*!40000 ALTER TABLE `account_types` DISABLE KEYS */;
-INSERT INTO `account_types` VALUES (1,'SAVINGS','Regular Savings Account',500.00,1000.00,1.50,50000.00,'2026-08-27 07:45:52');
+INSERT INTO `account_types` VALUES (1,'SAVINGS','Regular Savings Account',500.00,1000.00,1.50,50000.00,'2026-08-27 09:37:58');
 /*!40000 ALTER TABLE `account_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -79,7 +79,7 @@ CREATE TABLE `accounts` (
   KEY `account_type_id` (`account_type_id`),
   CONSTRAINT `accounts_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`),
   CONSTRAINT `accounts_ibfk_2` FOREIGN KEY (`account_type_id`) REFERENCES `account_types` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -88,7 +88,7 @@ CREATE TABLE `accounts` (
 
 LOCK TABLES `accounts` WRITE;
 /*!40000 ALTER TABLE `accounts` DISABLE KEYS */;
-INSERT INTO `accounts` VALUES (1,'1000-2026-0001',3,1,26498.25,26498.25,'PHP','ACTIVE','2026-08-27 07:45:52',NULL,'MAIN-01'),(2,'1000-2026-0002',3,1,3000.00,3000.00,'PHP','ACTIVE','2026-08-27 07:47:37',NULL,'MAIN-01');
+INSERT INTO `accounts` VALUES (1,'1000-2026-0001',3,1,27013.25,27013.25,'PHP','ACTIVE','2026-08-27 09:37:58',NULL,'MAIN-01'),(2,'1000-2026-0002',3,1,3000.00,3000.00,'PHP','ACTIVE','2026-08-27 09:38:58',NULL,'MAIN-01');
 /*!40000 ALTER TABLE `accounts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -113,7 +113,7 @@ CREATE TABLE `audit_logs` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `audit_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -122,7 +122,7 @@ CREATE TABLE `audit_logs` (
 
 LOCK TABLES `audit_logs` WRITE;
 /*!40000 ALTER TABLE `audit_logs` DISABLE KEYS */;
-INSERT INTO `audit_logs` VALUES (1,1,'TEST_ACTION','SYSTEM',1,'null','{\"msg\": \"Initialized Dry Run Test\"}',NULL,NULL,'2026-08-27 07:47:37'),(2,1,'TEST_ACTION','SYSTEM',1,'null','{\"msg\": \"Initialized Dry Run Test\"}',NULL,NULL,'2026-08-27 07:48:10');
+INSERT INTO `audit_logs` VALUES (1,1,'INITIALIZE','SYSTEM',1,'null','{\"msg\": \"Mordeno API initialized on 5002\"}',NULL,NULL,'2026-08-27 09:38:58');
 /*!40000 ALTER TABLE `audit_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -145,7 +145,7 @@ CREATE TABLE `banks` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `bank_code` (`bank_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -154,7 +154,7 @@ CREATE TABLE `banks` (
 
 LOCK TABLES `banks` WRITE;
 /*!40000 ALTER TABLE `banks` DISABLE KEYS */;
-INSERT INTO `banks` VALUES (1,'BDO',NULL,'Banco de Oro Universal Bank','BDO',NULL,NULL,'ACTIVE','2026-08-27 07:45:52');
+INSERT INTO `banks` VALUES (1,'BDO',NULL,'Banco de Oro Universal Bank','BDO',NULL,NULL,'ACTIVE','2026-08-27 09:37:58');
 /*!40000 ALTER TABLE `banks` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -181,7 +181,7 @@ CREATE TABLE `deposits` (
   KEY `deposited_by_user_id` (`deposited_by_user_id`),
   CONSTRAINT `deposits_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`),
   CONSTRAINT `deposits_ibfk_2` FOREIGN KEY (`deposited_by_user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -190,7 +190,7 @@ CREATE TABLE `deposits` (
 
 LOCK TABLES `deposits` WRITE;
 /*!40000 ALTER TABLE `deposits` DISABLE KEYS */;
-INSERT INTO `deposits` VALUES (1,1,'DEP-TEST-1',5000.00,'CASH',NULL,'Dry-run test deposit','2026-08-27 07:48:11','2026-08-27 07:48:11');
+INSERT INTO `deposits` VALUES (1,1,'DEP-MOR5002-1',5000.00,'CASH',NULL,'Mordeno test deposit','2026-08-27 09:38:58','2026-08-27 09:38:58');
 /*!40000 ALTER TABLE `deposits` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -214,7 +214,7 @@ CREATE TABLE `fee_records` (
   KEY `fee_type_id` (`fee_type_id`),
   CONSTRAINT `fee_records_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`),
   CONSTRAINT `fee_records_ibfk_2` FOREIGN KEY (`fee_type_id`) REFERENCES `fee_types` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -223,7 +223,7 @@ CREATE TABLE `fee_records` (
 
 LOCK TABLES `fee_records` WRITE;
 /*!40000 ALTER TABLE `fee_records` DISABLE KEYS */;
-INSERT INTO `fee_records` VALUES (1,1,1,NULL,18.00,'2026-08-27 07:48:11','Monthly maintenance / ATM fee');
+INSERT INTO `fee_records` VALUES (1,1,1,NULL,18.00,'2026-08-27 09:38:58','ATM Maintenance Fee');
 /*!40000 ALTER TABLE `fee_records` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -244,7 +244,7 @@ CREATE TABLE `fee_types` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `fee_code` (`fee_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -253,7 +253,7 @@ CREATE TABLE `fee_types` (
 
 LOCK TABLES `fee_types` WRITE;
 /*!40000 ALTER TABLE `fee_types` DISABLE KEYS */;
-INSERT INTO `fee_types` VALUES (1,'ATM_FEE','ATM Withdrawal Fee','Fee for interbank ATM withdrawal',18.00,0.00,'2026-08-27 07:47:28');
+INSERT INTO `fee_types` VALUES (1,'ATM_FEE','ATM Withdrawal Fee','Fee for interbank ATM withdrawal',18.00,0.00,'2026-08-27 09:38:58');
 /*!40000 ALTER TABLE `fee_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -282,7 +282,7 @@ CREATE TABLE `interbank_transfers` (
   KEY `target_bank_id` (`target_bank_id`),
   CONSTRAINT `interbank_transfers_ibfk_1` FOREIGN KEY (`source_account_id`) REFERENCES `accounts` (`id`),
   CONSTRAINT `interbank_transfers_ibfk_2` FOREIGN KEY (`target_bank_id`) REFERENCES `banks` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -291,7 +291,6 @@ CREATE TABLE `interbank_transfers` (
 
 LOCK TABLES `interbank_transfers` WRITE;
 /*!40000 ALTER TABLE `interbank_transfers` DISABLE KEYS */;
-INSERT INTO `interbank_transfers` VALUES (1,1,1,'9999-8888-7777','Maria Santos','IB-TEST-1',500.00,15.00,'SUCCESS','2026-08-27 07:48:11','2026-08-27 07:48:11');
 /*!40000 ALTER TABLE `interbank_transfers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -313,7 +312,7 @@ CREATE TABLE `interest_policies` (
   PRIMARY KEY (`id`),
   KEY `account_type_id` (`account_type_id`),
   CONSTRAINT `interest_policies_ibfk_1` FOREIGN KEY (`account_type_id`) REFERENCES `account_types` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -322,7 +321,7 @@ CREATE TABLE `interest_policies` (
 
 LOCK TABLES `interest_policies` WRITE;
 /*!40000 ALTER TABLE `interest_policies` DISABLE KEYS */;
-INSERT INTO `interest_policies` VALUES (1,1,'Standard Savings Interest 1.5%',1.50,'MONTHLY','2026-08-01',NULL);
+INSERT INTO `interest_policies` VALUES (1,1,'Standard Savings 1.5%',1.50,'MONTHLY','2026-08-01',NULL);
 /*!40000 ALTER TABLE `interest_policies` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -346,7 +345,7 @@ CREATE TABLE `interest_records` (
   KEY `policy_id` (`policy_id`),
   CONSTRAINT `interest_records_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`),
   CONSTRAINT `interest_records_ibfk_2` FOREIGN KEY (`policy_id`) REFERENCES `interest_policies` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -355,7 +354,7 @@ CREATE TABLE `interest_records` (
 
 LOCK TABLES `interest_records` WRITE;
 /*!40000 ALTER TABLE `interest_records` DISABLE KEYS */;
-INSERT INTO `interest_records` VALUES (1,1,1,31.25,26467.00,26498.25,'2026-08-27 07:48:11');
+INSERT INTO `interest_records` VALUES (1,1,1,31.25,26982.00,27013.25,'2026-08-27 09:38:58');
 /*!40000 ALTER TABLE `interest_records` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -379,7 +378,7 @@ CREATE TABLE `ledger_entries` (
   PRIMARY KEY (`id`),
   KEY `account_id` (`account_id`),
   CONSTRAINT `ledger_entries_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -388,7 +387,7 @@ CREATE TABLE `ledger_entries` (
 
 LOCK TABLES `ledger_entries` WRITE;
 /*!40000 ALTER TABLE `ledger_entries` DISABLE KEYS */;
-INSERT INTO `ledger_entries` VALUES (1,1,'LDG-1','INTEREST',0.00,31.25,26498.25,'2026-08-27 07:48:11','2026-08-27 07:48:11');
+INSERT INTO `ledger_entries` VALUES (1,1,'LDG-MOR5002-1','INTEREST',0.00,31.25,27013.25,'2026-08-27 09:38:58','2026-08-27 09:38:58');
 /*!40000 ALTER TABLE `ledger_entries` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -407,7 +406,7 @@ CREATE TABLE `roles` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `role_code` (`role_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -416,7 +415,7 @@ CREATE TABLE `roles` (
 
 LOCK TABLES `roles` WRITE;
 /*!40000 ALTER TABLE `roles` DISABLE KEYS */;
-INSERT INTO `roles` VALUES (1,'ADMIN','System Administrator','Full administrative access to all system resources and audit logs','2026-08-27 07:45:52'),(2,'STAFF','Bank Staff','Operational access to process customer accounts, deposits, and withdrawals','2026-08-27 07:45:52'),(3,'CUSTOMER','Bank Customer','Customer access to personal accounts and fund transfers','2026-08-27 07:45:52');
+INSERT INTO `roles` VALUES (1,'ADMIN','System Administrator','Full administrative access to all system resources and audit logs','2026-08-27 09:37:57'),(2,'STAFF','Bank Staff','Operational access to process customer accounts, deposits, and withdrawals','2026-08-27 09:37:57'),(3,'CUSTOMER','Bank Customer','Customer access to personal accounts and fund transfers','2026-08-27 09:37:57');
 /*!40000 ALTER TABLE `roles` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -440,7 +439,7 @@ CREATE TABLE `sessions` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -449,7 +448,7 @@ CREATE TABLE `sessions` (
 
 LOCK TABLES `sessions` WRITE;
 /*!40000 ALTER TABLE `sessions` DISABLE KEYS */;
-INSERT INTO `sessions` VALUES (1,1,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.dbXIZjk6Uw4fOGFzizBxDeo36k769IsobbKu705xJ8U',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:04','2026-08-27 08:17:04','2026-08-27 07:57:17'),(2,2,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdGFmZiJ9.UcH0kbL2n2f3S_wxkbWSQ1l0jCv4HRPhSpByxYu_ZLc',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:04','2026-08-27 08:17:04',NULL),(3,3,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjdXN0b21lciJ9.IwFB5mXOIGzIsV92LSo-X8_eRBsf2QIAZbaRawJjla4',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:05','2026-08-27 08:17:05',NULL),(4,1,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.dbXIZjk6Uw4fOGFzizBxDeo36k769IsobbKu705xJ8U',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:18','2026-08-27 08:17:18',NULL),(5,2,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdGFmZiJ9.UcH0kbL2n2f3S_wxkbWSQ1l0jCv4HRPhSpByxYu_ZLc',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:18','2026-08-27 08:17:18',NULL),(6,3,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjdXN0b21lciJ9.IwFB5mXOIGzIsV92LSo-X8_eRBsf2QIAZbaRawJjla4',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:18','2026-08-27 08:17:18',NULL),(7,1,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.dbXIZjk6Uw4fOGFzizBxDeo36k769IsobbKu705xJ8U',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:27','2026-08-27 08:17:27',NULL),(8,2,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdGFmZiJ9.UcH0kbL2n2f3S_wxkbWSQ1l0jCv4HRPhSpByxYu_ZLc',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:27','2026-08-27 08:17:27',NULL),(9,3,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjdXN0b21lciJ9.IwFB5mXOIGzIsV92LSo-X8_eRBsf2QIAZbaRawJjla4',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:27','2026-08-27 08:17:27',NULL),(10,1,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.dbXIZjk6Uw4fOGFzizBxDeo36k769IsobbKu705xJ8U',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:37','2026-08-27 08:17:37',NULL),(11,2,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdGFmZiJ9.UcH0kbL2n2f3S_wxkbWSQ1l0jCv4HRPhSpByxYu_ZLc',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:37','2026-08-27 08:17:37',NULL),(12,3,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjdXN0b21lciJ9.IwFB5mXOIGzIsV92LSo-X8_eRBsf2QIAZbaRawJjla4',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:47:37','2026-08-27 08:17:37',NULL),(13,1,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.dbXIZjk6Uw4fOGFzizBxDeo36k769IsobbKu705xJ8U',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:48:10','2026-08-27 08:18:10',NULL),(14,2,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdGFmZiJ9.UcH0kbL2n2f3S_wxkbWSQ1l0jCv4HRPhSpByxYu_ZLc',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:48:10','2026-08-27 08:18:10',NULL),(15,3,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjdXN0b21lciJ9.IwFB5mXOIGzIsV92LSo-X8_eRBsf2QIAZbaRawJjla4',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 07:48:10','2026-08-27 08:18:10',NULL);
+INSERT INTO `sessions` VALUES (1,1,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.dbXIZjk6Uw4fOGFzizBxDeo36k769IsobbKu705xJ8U',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 09:38:48','2026-08-27 10:08:48','2026-08-27 09:38:48'),(2,2,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdGFmZiJ9.UcH0kbL2n2f3S_wxkbWSQ1l0jCv4HRPhSpByxYu_ZLc',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 09:38:48','2026-08-27 10:08:48',NULL),(3,3,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjdXN0b21lciJ9.IwFB5mXOIGzIsV92LSo-X8_eRBsf2QIAZbaRawJjla4',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 09:38:48','2026-08-27 10:08:48',NULL),(4,1,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.dbXIZjk6Uw4fOGFzizBxDeo36k769IsobbKu705xJ8U',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 09:38:57','2026-08-27 10:08:57',NULL),(5,2,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdGFmZiJ9.UcH0kbL2n2f3S_wxkbWSQ1l0jCv4HRPhSpByxYu_ZLc',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 09:38:58','2026-08-27 10:08:58',NULL),(6,3,'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjdXN0b21lciJ9.IwFB5mXOIGzIsV92LSo-X8_eRBsf2QIAZbaRawJjla4',NULL,'127.0.0.1','python-requests/2.34.2','2026-08-27 09:38:58','2026-08-27 10:08:58',NULL);
 /*!40000 ALTER TABLE `sessions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -477,7 +476,7 @@ CREATE TABLE `transfers` (
   KEY `destination_account_id` (`destination_account_id`),
   CONSTRAINT `transfers_ibfk_1` FOREIGN KEY (`source_account_id`) REFERENCES `accounts` (`id`),
   CONSTRAINT `transfers_ibfk_2` FOREIGN KEY (`destination_account_id`) REFERENCES `accounts` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -486,7 +485,7 @@ CREATE TABLE `transfers` (
 
 LOCK TABLES `transfers` WRITE;
 /*!40000 ALTER TABLE `transfers` DISABLE KEYS */;
-INSERT INTO `transfers` VALUES (1,1,2,'TRF-TEST-1',2000.00,'INTERNAL','Dry-run internal transfer','SUCCESS','2026-08-27 07:48:11','2026-08-27 07:48:11');
+INSERT INTO `transfers` VALUES (1,1,2,'TRF-MOR5002-1',2000.00,'INTERNAL','Mordeno internal transfer','SUCCESS','2026-08-27 09:38:58','2026-08-27 09:38:58');
 /*!40000 ALTER TABLE `transfers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -517,7 +516,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `email` (`email`),
   KEY `role_id` (`role_id`),
   CONSTRAINT `users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -526,7 +525,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'admin','$2b$12$wNHAAD/NX0ZFG0EotlNRKO.IjpnWPaZYf.Lh5mUHZltyq8I8c0hMm','admin@bank.local',NULL,'System',NULL,'Admin',NULL,1,'ACTIVE','2026-08-27 07:48:10','2026-08-27 07:45:52','2026-08-27 07:48:10'),(2,'staff','$2b$12$UmbbImDViX7B88FHHPuhRuss0x.C9DbEA.ZU2hzTEQsrIFBZKUiAi','staff@bank.local',NULL,'Bank',NULL,'Officer',NULL,2,'ACTIVE','2026-08-27 07:48:10','2026-08-27 07:45:52','2026-08-27 07:48:10'),(3,'customer','$2b$12$sV8dY.xM5YHsVGB71xHkqeTAjHMFfAqMCsXqbR1cCQWfP/fRODDpG','customer@bank.local',NULL,'Juan',NULL,'Dela Cruz',NULL,3,'ACTIVE','2026-08-27 07:48:10','2026-08-27 07:45:52','2026-08-27 07:48:10'),(4,'nexgen','$2b$12$mtvVFInWc3qpy7KwgwUoYeKcGviopWAd0wktMdnhk4O7gKvwkEl4C','nexgentoyongan213@gmail.com','09123456789','nexgen','','toyongan',NULL,2,'ACTIVE',NULL,'2026-08-27 07:53:32','2026-08-27 07:53:32'),(5,'paulszx','$2b$12$DVspWjqdCqivllNlnm8wKuo7AKwHQ50uG3SWfN6r98IBSASPJt0Y6','nexgen@gmail.com','09123456789','nexgen','','toyongan',NULL,1,'ACTIVE',NULL,'2026-08-27 07:54:59','2026-08-27 07:54:59');
+INSERT INTO `users` VALUES (1,'admin','$2b$12$B5kQ0l1DmiL9cfqHbtlrBu3i.KGPNCfCgu1JVKxXwyzBsg8BwYiDi','admin@bank.local',NULL,'System',NULL,'Admin',NULL,1,'ACTIVE','2026-08-27 09:38:57','2026-08-27 09:37:57','2026-08-27 09:38:57'),(2,'staff','$2b$12$rgC348W0y2GB8trKAKd8luyUtqdMejO0eg.AnwDsu4nyIG5Z414dS','staff@bank.local',NULL,'Bank',NULL,'Officer',NULL,2,'ACTIVE','2026-08-27 09:38:58','2026-08-27 09:37:57','2026-08-27 09:38:58'),(3,'customer','$2b$12$1GSG4BiV6JUUv2VQdWE08.c7HgZORMvXHRBz9Ytqy0as1KgXl79pW','customer@bank.local',NULL,'Juan',NULL,'Dela Cruz',NULL,3,'ACTIVE','2026-08-27 09:38:58','2026-08-27 09:37:58','2026-08-27 09:38:58');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -547,7 +546,7 @@ CREATE TABLE `withdrawal_limits` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `account_id` (`account_id`),
   CONSTRAINT `withdrawal_limits_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -556,7 +555,6 @@ CREATE TABLE `withdrawal_limits` (
 
 LOCK TABLES `withdrawal_limits` WRITE;
 /*!40000 ALTER TABLE `withdrawal_limits` DISABLE KEYS */;
-INSERT INTO `withdrawal_limits` VALUES (1,1,50000.00,1000.00,'2026-08-27','2026-08-27 07:48:11');
 /*!40000 ALTER TABLE `withdrawal_limits` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -583,7 +581,7 @@ CREATE TABLE `withdrawals` (
   KEY `approved_by_user_id` (`approved_by_user_id`),
   CONSTRAINT `withdrawals_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`),
   CONSTRAINT `withdrawals_ibfk_2` FOREIGN KEY (`approved_by_user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -592,7 +590,7 @@ CREATE TABLE `withdrawals` (
 
 LOCK TABLES `withdrawals` WRITE;
 /*!40000 ALTER TABLE `withdrawals` DISABLE KEYS */;
-INSERT INTO `withdrawals` VALUES (1,1,'WTH-TEST-1',1000.00,'BRANCH',NULL,'Dry-run test withdrawal','2026-08-27 07:48:11','2026-08-27 07:48:11');
+INSERT INTO `withdrawals` VALUES (1,1,'WTH-MOR5002-1',1000.00,'BRANCH',NULL,'Mordeno test withdrawal','2026-08-27 09:38:58','2026-08-27 09:38:58');
 /*!40000 ALTER TABLE `withdrawals` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -605,4 +603,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-27 15:59:35
+-- Dump completed on 2026-08-27 17:39:04

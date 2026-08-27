@@ -2,11 +2,11 @@ import os
 
 class Settings:
     # --- Database ---
-    DB_USER: str = os.getenv("DB_USER", "toyongan")
+    DB_USER: str = os.getenv("DB_USER", "mordeno")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "1234")
     DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
     DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
-    DB_NAME: str = os.getenv("DB_NAME", "toyongan")
+    DB_NAME: str = os.getenv("DB_NAME", "mordeno")
 
     @property
     def DATABASE_URL(self) -> str:
@@ -21,7 +21,7 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # --- App ---
-    APP_NAME: str = "Mini Banking System API"
+    APP_NAME: str = "Mordeno Banking System API"
     APP_VERSION: str = "1.0.0"
 
 
