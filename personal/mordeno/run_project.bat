@@ -1,6 +1,6 @@
 @echo off
 echo ========================================================
-echo   ESPADA Banking System - Launching Toyongan Application
+echo   Mordeno Banking System - Launching Mordeno Application
 echo ========================================================
 echo.
 
@@ -10,11 +10,11 @@ powershell -Command "if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 
 
 REM 2. Start Backend Server
 echo [*] Starting FastAPI Backend on http://127.0.0.1:5002 ...
-start "Toyongan Banking API (FastAPI)" cmd /k "cd /d %~dp0appserver && python -m uvicorn app.main:app --host 127.0.0.1 --port 5002 --reload"
+start "Mordeno Banking API (FastAPI)" cmd /k "cd /d %~dp0appserver && python -m uvicorn app.main:app --host 127.0.0.1 --port 5002 --reload"
 
 REM 3. Start Frontend Client
 echo [*] Starting Vite Frontend on http://127.0.0.1:9005 ...
-start "Toyongan Banking Frontend (Vite/Quasar)" cmd /k "cd /d %~dp0appclient && npm run dev -- --host 127.0.0.1 --port 9005"
+start "Mordeno Banking Frontend (Vite/Quasar)" cmd /k "cd /d %~dp0appclient && npm run dev -- --host 127.0.0.1 --port 9005"
 
 echo.
 echo ========================================================
