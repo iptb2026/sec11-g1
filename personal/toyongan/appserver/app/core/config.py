@@ -2,11 +2,11 @@ import os
 
 class Settings:
     # --- Database ---
-    DB_USER: str = os.getenv("DB_USER", "evanoso")
+    DB_USER: str = os.getenv("DB_USER", "toyongan")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "1234")
     DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
     DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
-    DB_NAME: str = os.getenv("DB_NAME", "evanoso")
+    DB_NAME: str = os.getenv("DB_NAME", "toyongan")
 
     @property
     def DATABASE_URL(self) -> str:

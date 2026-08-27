@@ -1,6 +1,7 @@
+import os
 import requests
 
-BASE = "http://127.0.0.1:5001"
+BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:5002")
 
 def get_token(username, password):
     r = requests.post(f"{BASE}/auth/login", data={"username": username, "password": password})
@@ -25,13 +26,17 @@ print(f"3. Invalid Token /auth/me: Status {r_bad_token.status_code} (Expected 40
 assert r_bad_token.status_code == 401
 
 # 4. Test Customer Data Isolation via /accounts/my
+r_cust_me = requests.get(f"{BASE}/auth/me", headers={"Authorization": f"Bearer {customer_token}"})
+assert r_cust_me.status_code == 200
+customer_id = r_cust_me.json()["id"]
+
 r_cust_my = requests.get(f"{BASE}/accounts/my", headers={"Authorization": f"Bearer {customer_token}"})
 print(f"4. Customer /accounts/my: Status {r_cust_my.status_code}, Accounts count: {len(r_cust_my.json())}")
 assert r_cust_my.status_code == 200
 for acc in r_cust_my.json():
     print(f"   Account {acc['account_number']} belongs to Customer ID {acc['customer_id']}")
-    # Verify every account returned belongs to this customer (customer id = 6)
-    assert acc['customer_id'] == 6
+    # Verify every account returned belongs to this customer
+    assert acc['customer_id'] == customer_id
 
 # 5. Test Staff on /accounts/my (Staff has no customer bank accounts)
 r_staff_my = requests.get(f"{BASE}/accounts/my", headers={"Authorization": f"Bearer {staff_token}"})

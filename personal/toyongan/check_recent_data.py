@@ -6,9 +6,9 @@ def check():
         conn = pymysql.connect(
             host="127.0.0.1",
             port=3306,
-            user="evanoso",
+            user="toyongan",
             password="1234",
-            database="evanoso",
+            database="toyongan",
             cursorclass=pymysql.cursors.DictCursor
         )
     except Exception as e:

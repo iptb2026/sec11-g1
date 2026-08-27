@@ -1,4 +1,4 @@
-# ESPADA Banking System — Evanoso Frontend & API
+# ESPADA Banking System — Toyongan Frontend & API
 
 A full-stack banking interface and API implementation for the IPT2 final project submission. Built with **Vue 3**, **Quasar Framework**, **FastAPI**, and **MySQL**.
 
@@ -10,27 +10,27 @@ A full-stack banking interface and API implementation for the IPT2 final project
 > A fresh clone or new environment has **no database data**. You must run `python seed.py` once to create all 17 tables and default demo accounts before running the application.
 
 ### 1. Database & Seeding
-Ensure MySQL/MariaDB is running on port 3306 with database `evanoso`:
+Ensure MySQL/MariaDB is running on port 3306 with database `toyongan`:
 ```powershell
-cd personal\evanoso\appserver
+cd personal\toyongan\appserver
 python seed.py
 ```
 *(Creates all tables, roles, reference banks, account types, test users, and a customer account with ₱25,000 balance).*
 
 ### 2. Start Backend (Terminal 1)
 ```powershell
-cd personal\evanoso\appserver
-python -m uvicorn app.main:app --host 127.0.0.1 --port 5001 --reload
+cd personal\toyongan\appserver
+python -m uvicorn app.main:app --host 127.0.0.1 --port 5002 --reload
 ```
-- API Docs: `http://127.0.0.1:5001/docs`
+- API Docs: `http://127.0.0.1:5002/docs`
 
 ### 3. Start Frontend (Terminal 2)
 ```powershell
-cd personal\evanoso\appclient
+cd personal\toyongan\appclient
 npm install
-npm run dev -- --host 127.0.0.1 --port 9000
+npm run dev -- --host 127.0.0.1 --port 9005
 ```
-- Web App: `http://127.0.0.1:9000`
+- Web App: `http://127.0.0.1:9005`
 
 ### 🔑 Test Credentials (All accounts use `Password123!`)
 | Role | Username | Password | View / Capabilities |
@@ -44,11 +44,11 @@ npm run dev -- --host 127.0.0.1 --port 9000
 ## 1. Architecture Overview
 
 ```
-[ Browser / Quasar Client ]  (Port 9000)
+[ Browser / Quasar Client ]  (Port 9005)
              │
              │ HTTP / REST API (JWT Bearer Auth)
              ▼
-[ FastAPI / Uvicorn Server ]  (Port 5001)
+[ FastAPI / Uvicorn Server ]  (Port 5002)
              │
              │ SQLAlchemy ORM / PyMySQL
              ▼
@@ -73,13 +73,13 @@ npm run dev -- --host 127.0.0.1 --port 9000
 
 ### Terminal 1: Database Setup & Seeding
 
-1. Ensure MySQL is running on port 3306 and database `evanoso` (or configured database) exists:
+1. Ensure MySQL is running on port 3306 and database `toyongan` (or configured database) exists:
    ```sql
-   CREATE DATABASE IF NOT EXISTS evanoso;
+   CREATE DATABASE IF NOT EXISTS toyongan;
    ```
 2. Navigate to the backend directory:
    ```bash
-   cd personal/evanoso/appserver
+   cd personal/toyongan/appserver
    ```
 3. Install Python dependencies:
    ```bash
@@ -92,46 +92,46 @@ npm run dev -- --host 127.0.0.1 --port 9000
 
 ### Terminal 2: Start Backend Server
 
-From `personal/evanoso/appserver`:
+From `personal/toyongan/appserver`:
 ```bash
 # Windows PowerShell:
-uvicorn app.main:app --host 127.0.0.1 --port 5001 --reload
+uvicorn app.main:app --host 127.0.0.1 --port 5002 --reload
 
 # Linux / macOS:
 ./run.sh
 ```
-- API Documentation (Swagger UI): `http://127.0.0.1:5001/docs`
-- Health Check: `http://127.0.0.1:5001/`
+- API Documentation (Swagger UI): `http://127.0.0.1:5002/docs`
+- Health Check: `http://127.0.0.1:5002/`
 
 ### Terminal 3: Start Frontend Application
 
-From `personal/evanoso/appclient`:
+From `personal/toyongan/appclient`:
 ```bash
-cd personal/evanoso/appclient
+cd personal/toyongan/appclient
 npm install
-npm run dev
+npm run dev -- --host 127.0.0.1 --port 9005
 ```
-- Application will open on: `http://localhost:9000`
+- Application will open on: `http://127.0.0.1:9005`
 
 ---
 
 ## 4. Environment Variables
 
-### Frontend (`personal/evanoso/appclient/.env`)
+### Frontend (`personal/toyongan/appclient/.env`)
 ```ini
 # Backend API Base URL
-VITE_API_BASE_URL=http://localhost:5001
+VITE_API_BASE_URL=http://127.0.0.1:5002
 ```
 
-### Backend (`personal/evanoso/appserver/app/core/config.py`)
+### Backend (`personal/toyongan/appserver/app/core/config.py`)
 Configurable via system environment variables:
 | Variable | Default Value | Description |
 |---|---|---|
-| `DB_USER` | `evanoso` | MySQL user |
+| `DB_USER` | `toyongan` | MySQL user |
 | `DB_PASSWORD` | `1234` | MySQL password |
 | `DB_HOST` | `127.0.0.1` | MySQL host address |
 | `DB_PORT` | `3306` | MySQL port |
-| `DB_NAME` | `evanoso` | Database schema name |
+| `DB_NAME` | `toyongan` | Database schema name |
 
 ---
 
@@ -202,7 +202,7 @@ The frontend implements distinct layouts, navigation flows, and capabilities tai
 
 ### 1. Authenticate (Login)
 ```bash
-curl -X POST "http://127.0.0.1:5001/auth/login" \
+curl -X POST "http://127.0.0.1:5002/auth/login" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=admin&password=Password123!"
 ```
@@ -216,7 +216,7 @@ curl -X POST "http://127.0.0.1:5001/auth/login" \
 
 ### 2. Fetch User Profile (`/auth/me`)
 ```bash
-curl -X GET "http://127.0.0.1:5001/auth/me" \
+curl -X GET "http://127.0.0.1:5002/auth/me" \
   -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 **Response (`200 OK`):**
@@ -237,7 +237,7 @@ curl -X GET "http://127.0.0.1:5001/auth/me" \
 
 ### 3. Customer Data Ownership (`/accounts/my`)
 ```bash
-curl -X GET "http://127.0.0.1:5001/accounts/my" \
+curl -X GET "http://127.0.0.1:5002/accounts/my" \
   -H "Authorization: Bearer <CUSTOMER_ACCESS_TOKEN>"
 ```
 **Response (`200 OK`):**
