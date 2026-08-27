@@ -4,7 +4,7 @@ class settings:
     DB_PASSWORD: str = "1234"
     DB_HOST: str = "0.0.0.0"
     DB_PORT: int = 3306
-    DB_NAME: str = "db"
+    DB_NAME: str = "mordeno"
 
     # --- JWT ---
     SECRET_KEY: str = "..."
