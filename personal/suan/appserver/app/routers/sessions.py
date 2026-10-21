@@ -41,6 +41,7 @@ def get_session(session_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{session_id}/revoke", response_model=SessionOut)
 def revoke_session(session_id: int, db: Session = Depends(get_db)):
+    """Convenience action endpoint: marks a session revoked instead of replacing the whole row."""
     session = db.query(UserSession).filter(UserSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")

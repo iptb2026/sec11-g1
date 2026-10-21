@@ -14,12 +14,12 @@ router = APIRouter(prefix="/sessions", tags=["Layer 2 - Sessions"])
 
 
 @router.post("/", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
-def create_session(session_data: SessionCreate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == session_data.user_id).first()
+def create_session(data: SessionCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == data.user_id).first()
     if not user:
         raise HTTPException(status_code=400, detail="user_id does not exist")
 
-    new_session = UserSession(**session_data.model_dump())
+    new_session = UserSession(**data.model_dump())
     db.add(new_session)
     db.commit()
     db.refresh(new_session)
@@ -41,7 +41,7 @@ def get_session(session_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{session_id}/revoke", response_model=SessionOut)
 def revoke_session(session_id: int, db: Session = Depends(get_db)):
-    """Convenience action endpoint: marks a session revoked instead of replacing the whole row."""
+    """Mark a specific session as revoked without deleting the record."""
     session = db.query(UserSession).filter(UserSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -60,3 +60,4 @@ def delete_session(session_id: int, db: Session = Depends(get_db)):
 
     db.delete(session)
     commit_or_409(db, "Cannot delete this session — it is still referenced elsewhere")
+

@@ -16,6 +16,7 @@ def create_withdrawal_limit(data: WithdrawalLimitCreate, db: Session = Depends(g
     if not account:
         raise HTTPException(status_code=400, detail="account_id does not exist")
 
+    # account_id is UNIQUE on this table — one account has at most one withdrawal_limits row.
     existing = db.query(WithdrawalLimit).filter(WithdrawalLimit.account_id == data.account_id).first()
     if existing:
         raise HTTPException(status_code=400, detail="This account already has a withdrawal limit")
