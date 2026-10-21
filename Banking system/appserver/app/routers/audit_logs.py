@@ -1,3 +1,4 @@
+# ==== LAYER 2: Identity & Access ====
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -44,4 +45,3 @@ def delete_audit_log(log_id: int, db: Session = Depends(get_db)):
 
     db.delete(log)
     db.commit()
-

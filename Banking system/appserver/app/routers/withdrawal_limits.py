@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.withdrawal_limit import WithdrawalLimit
-from app.schemas.withdrawal_limit import WithdrawalLimitCreate, WithdrawalLimitOut, WithdrawalLimitUpdate
+from app.schemas.withdrawal_limit import WithdrawalLimitCreate, WithdrawalLimitUpdate, WithdrawalLimitOut
 
 router = APIRouter(prefix="/withdrawal-limits", tags=["Layer 3 - Withdrawal Limits"])
 
@@ -16,7 +16,7 @@ def create_withdrawal_limit(data: WithdrawalLimitCreate, db: Session = Depends(g
     if not account:
         raise HTTPException(status_code=400, detail="account_id does not exist")
 
-    # One account can only have one withdrawal limit row.
+    # account_id is UNIQUE on this table — one account has at most one withdrawal_limits row.
     existing = db.query(WithdrawalLimit).filter(WithdrawalLimit.account_id == data.account_id).first()
     if existing:
         raise HTTPException(status_code=400, detail="This account already has a withdrawal limit")
@@ -63,4 +63,3 @@ def delete_withdrawal_limit(limit_id: int, db: Session = Depends(get_db)):
 
     db.delete(limit)
     db.commit()
-
