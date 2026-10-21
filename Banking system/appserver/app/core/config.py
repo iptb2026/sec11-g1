@@ -4,7 +4,7 @@ class Settings:
     DB_PASSWORD: str = "1234"
     DB_HOST: str = "127.0.0.1"
     DB_PORT: int = 3306
-    DB_NAME: str = "guiritan"
+    DB_NAME: str = "suan"
 
     @property
     def DATABASE_URL(self) -> str:
