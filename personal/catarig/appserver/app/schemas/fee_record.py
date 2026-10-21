@@ -3,14 +3,14 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FeeRecordCreate(BaseModel):
     account_id: int
     fee_type_id: int
     transaction_reference: Optional[str] = None
-    amount_charged: Decimal
+    amount_charged: Decimal = Field(gt=0)
     remarks: Optional[str] = None
 
 
