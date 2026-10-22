@@ -13,7 +13,7 @@
 
         <q-toolbar-title>
           <q-icon name="account_balance" class="q-mr-sm" />
-          Mini Banking System
+          Unsa maypangalan sa bank huy
         </q-toolbar-title>
 
         <q-chip
