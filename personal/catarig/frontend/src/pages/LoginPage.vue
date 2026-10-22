@@ -5,7 +5,7 @@
         <q-card style="width: 380px" bordered class="q-pa-md">
           <q-card-section class="text-center">
             <q-icon name="account_balance" size="48px" color="primary" />
-            <div class="text-h5 q-mt-sm">Mini Banking System</div>
+            <div class="text-h5 q-mt-sm">Unsa maypangalan sa bank huy</div>
             <div class="text-caption text-grey-7">Sign in to continue</div>
           </q-card-section>
 
