@@ -31,8 +31,8 @@ def login(
     if user.account_status != "ACTIVE":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active")
 
-    token = create_token(user.username)
     expires_at = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    token = create_token(user.username, expires_at)
 
     # Every successful login is recorded as a row in `sessions` (Layer 2 table).
     new_session = UserSession(
