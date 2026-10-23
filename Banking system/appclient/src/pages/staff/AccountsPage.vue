@@ -6,7 +6,7 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table
+    <q-table :filter="search"
       :rows="groupedRows"
       :columns="columns"
       :row-key="rowKey"
@@ -16,6 +16,11 @@
       :pagination="{ rowsPerPage: 0 }"
       :rows-per-page-options="[0]"
     >
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template v-slot:body="props">
         <q-tr v-if="props.row.isGroupHeader" :key="props.row.key">
           <q-td colspan="100%" class="bg-grey-2 text-weight-bold">
@@ -36,36 +41,38 @@
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 440px">
-        <q-card-section>
-          <div class="text-h6">{{ editingId ? 'Edit Account' : 'New Account' }}</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">{{ editingId ? 'Edit Account' : 'New Account' }}</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-input v-model="form.account_number" label="Account Number" filled />
-          <q-select
-            v-model="form.customer_id"
-            label="Customer"
-            filled
-            emit-value
-            map-options
-            :options="customerOptions"
-          />
-          <q-select
-            v-model="form.account_type_id"
-            label="Account Type"
-            filled
-            emit-value
-            map-options
-            :options="accountTypeOptions"
-          />
-          <q-input v-model="form.currency_code" label="Currency Code" filled />
-          <q-input v-model="form.branch_code" label="Branch Code" filled />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-input v-model="form.account_number" :rules="[required]" lazy-rules label="Account Number" filled />
+            <q-select
+              v-model="form.customer_id" :rules="[required]" lazy-rules
+              label="Customer"
+              filled
+              emit-value
+              map-options
+              :options="customerOptions"
+            />
+            <q-select
+              v-model="form.account_type_id" :rules="[required]" lazy-rules
+              label="Account Type"
+              filled
+              emit-value
+              map-options
+              :options="accountTypeOptions"
+            />
+            <q-input v-model="form.currency_code" label="Currency Code" filled />
+            <q-input v-model="form.branch_code" label="Branch Code" filled />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -75,6 +82,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -90,6 +99,7 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const customerOptions = ref([])
 const accountTypeOptions = ref([])
 const customerNameById = ref({})
@@ -134,9 +144,14 @@ const form = ref(emptyForm())
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/accounts/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/accounts/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadOptions () {
@@ -177,7 +192,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Account saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -193,7 +208,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Account deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }

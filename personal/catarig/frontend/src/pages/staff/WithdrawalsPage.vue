@@ -6,7 +6,12 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
@@ -17,57 +22,57 @@
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 420px">
-        <q-card-section>
-          <div class="text-h6">{{ editingId ? 'Edit Withdrawal' : 'New Withdrawal' }}</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">{{ editingId ? 'Edit Withdrawal' : 'New Withdrawal' }}</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-select
-            v-model="form.account_id"
-            label="Account"
-            filled
-            emit-value
-            map-options
-            :options="accountOptions"
-          >
-            <template v-slot:option="scope">
-              <q-item v-bind="scope.itemProps">
-                <q-item-section>
-                  <q-item-label>{{ scope.opt.label }}</q-item-label>
-                  <q-item-label caption>{{ scope.opt.holder }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-          <q-input
-            v-if="form.account_id"
-            :model-value="accountHolderName"
-            label="Account Holder"
-            filled
-            readonly
-          />
-          <q-input v-model="form.reference_number" label="Reference Number" filled />
-          <q-input v-model.number="form.amount" label="Amount" type="number" filled />
-          <q-select
-            v-model="form.withdrawal_channel"
-            label="Channel"
-            filled
-            use-input
-            hide-selected
-            fill-input
-            input-debounce="0"
-            new-value-mode="add-unique"
-            :options="filteredChannelOptions"
-            @filter="filterChannelOptions"
-            hint="e.g. ONLINE, ATM, TELLER"
-          />
-          <q-input v-model="form.remarks" label="Remarks" type="textarea" filled />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-select
+              v-model="form.account_id" :rules="[required]" lazy-rules
+              label="Account"
+              filled
+              emit-value
+              map-options
+              :options="accountOptions"
+            >
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.label }}</q-item-label>
+                    <q-item-label caption>{{ scope.opt.holder }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+            <q-input
+              v-if="form.account_id"
+              :model-value="accountHolderName"
+              label="Account Holder"
+              filled
+              readonly
+            />
+            <q-input v-model="form.reference_number" :rules="[required]" lazy-rules label="Reference Number" filled />
+            <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled />
+            <q-select
+              v-model="form.withdrawal_channel" :rules="[required]" lazy-rules
+              label="Channel"
+              filled
+              use-input
+              hide-selected
+              fill-input
+              input-debounce="0"
+              :options="filteredChannelOptions"
+              @filter="filterChannelOptions"
+            />
+            <q-input v-model="form.remarks" label="Remarks" type="textarea" filled />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -77,6 +82,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required, positiveAmount } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -93,6 +100,7 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const accountOptions = ref([])
 const accountNumberByAccountId = ref({})
 const accountHolderByAccountId = ref({})
@@ -104,7 +112,7 @@ const form = ref(emptyForm())
 
 const accountHolderName = computed(() => accountHolderByAccountId.value[form.value.account_id] || '')
 
-const channelOptions = ['ONLINE', 'ATM', 'TELLER']
+const channelOptions = ['ATM', 'ONLINE', 'BRANCH', 'INTERBANK']
 const filteredChannelOptions = ref(channelOptions)
 function filterChannelOptions (val, update) {
   update(() => {
@@ -119,9 +127,14 @@ function filterChannelOptions (val, update) {
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/withdrawals/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/withdrawals/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadOptions () {
@@ -175,7 +188,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Withdrawal saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -191,7 +204,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Withdrawal deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }

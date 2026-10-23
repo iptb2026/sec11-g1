@@ -5,12 +5,18 @@
     <q-table
       :rows="rows"
       :columns="columns"
+      :filter="search"
       row-key="key"
       :loading="loading"
       flat
       bordered
       :pagination="{ sortBy: 'date', descending: true, rowsPerPage: 15 }"
     >
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-type="props">
         <q-td :props="props">
           <q-badge :color="badgeColor(props.row.type)">{{ props.row.type }}</q-badge>
@@ -32,6 +38,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 const auth = useAuthStore()
 const rows = ref([])
+const search = ref('')
 const loading = ref(true)
 
 const columns = [
