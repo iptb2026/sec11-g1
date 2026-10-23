@@ -28,6 +28,12 @@ USERS = [
     ("admin", "System", "Administrator", "admin@minibank.com", "ADMIN"),
     ("teller1", "Maria", "Santos", "teller1@minibank.com", "STAFF"),
     ("juandelacruz", "Juan", "Dela Cruz", "juan@example.com", "CUSTOMER"),
+    # Test accounts, one per role, for trying out the system.
+    ("testadmin", "Test", "Admin", "testadmin@minibank.com", "ADMIN"),
+    ("teststaff", "Test", "Staff", "teststaff@minibank.com", "STAFF"),
+    ("testcustomer", "Test", "Customer", "testcustomer@example.com", "CUSTOMER"),
+    ("testcustomer2", "Test", "Customer Two", "testcustomer2@example.com", "CUSTOMER"),
+    ("testauditor", "Test", "Auditor", "testauditor@minibank.com", "AUDITOR"),
 ]
 
 

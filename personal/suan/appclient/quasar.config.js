@@ -83,7 +83,8 @@ export default defineConfig((/* ctx */) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: []
+      // Notify = the success/error toasts, Dialog = the delete confirmations.
+      plugins: ['Notify', 'Dialog']
     },
 
     // animations: 'all', // --- includes all animations
