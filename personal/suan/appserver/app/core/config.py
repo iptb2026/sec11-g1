@@ -1,9 +1,10 @@
 class Settings:
     # --- Database ---
-    DB_USER: str = "root"
+    # MySQL inside the ipt-g1 Docker container (docker-compose.g1.yml maps 3501 -> 3306)
+    DB_USER: str = "admin"
     DB_PASSWORD: str = "1234"
     DB_HOST: str = "127.0.0.1"
-    DB_PORT: int = 3306
+    DB_PORT: int = 3501
     DB_NAME: str = "suan"
 
     @property
