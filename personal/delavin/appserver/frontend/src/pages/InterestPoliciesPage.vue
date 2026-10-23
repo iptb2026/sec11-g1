@@ -9,7 +9,7 @@
       <q-table :rows="items" :columns="columns" row-key="id" :loading="loading" :pagination="initialPagination" flat>
         <template v-slot:body-cell-rate="props">
           <q-td :props="props">
-            {{ props.row.rate }}%
+            {{ props.row.annual_rate ?? props.row.rate }}%
           </q-td>
         </template>
       </q-table>
@@ -24,9 +24,10 @@
         </q-card-section>
         <q-card-section class="q-pt-md">
           <q-form @submit="saveItem" class="q-gutter-md">
+            <q-input v-model="form.policy_name" label="Policy Name *" outlined dense :rules="[val => !!val || 'Required']" />
             <q-input v-model="form.account_type_id" label="Account Type ID *" outlined dense type="number" :rules="[val => !!val || 'Required']" />
-            <q-input v-model="form.rate" label="Interest Rate (%) *" outlined dense type="number" step="0.01" :rules="[val => !!val || 'Required']" />
-            <q-select v-model="form.period" :options="['ANNUAL', 'MONTHLY', 'DAILY']" label="Period" outlined dense />
+            <q-input v-model="form.rate" label="Annual Rate (%) *" outlined dense type="number" step="0.01" :rules="[val => !!val || 'Required']" />
+            <q-select v-model="form.compounding_frequency" :options="['DAILY', 'MONTHLY', 'QUARTERLY', 'YEARLY']" label="Compounding Frequency" outlined dense />
             <div class="row justify-end q-gutter-sm q-mt-md">
               <q-btn label="Cancel" flat color="grey-7" v-close-popup />
               <q-btn label="Save Policy" type="submit" color="primary" unelevated :loading="saving" />
@@ -49,22 +50,29 @@ const loading = ref(false)
 const saving = ref(false)
 const dialogOpen = ref(false)
 
-const form = ref({ account_type_id: 1, rate: '1.50', period: 'ANNUAL' })
+const form = ref({
+  policy_name: 'Standard Savings Rate',
+  account_type_id: 1,
+  rate: '1.50',
+  compounding_frequency: 'MONTHLY'
+})
 const initialPagination = { sortBy: 'id', descending: false, page: 1, rowsPerPage: 5 }
 
 const columns = [
   { name: 'id', label: 'ID', align: 'left', field: 'id', sortable: true, style: 'width: 70px' },
+  { name: 'policy_name', label: 'Policy Name', align: 'left', field: 'policy_name', sortable: true },
   { name: 'account_type_id', label: 'Account Type ID', align: 'left', field: 'account_type_id', sortable: true },
-  { name: 'rate', label: 'Interest Rate', align: 'left', field: 'rate', sortable: true },
-  { name: 'period', label: 'Compounding Period', align: 'left', field: 'period', sortable: true }
+  { name: 'rate', label: 'Annual Rate', align: 'left', field: row => `${row.annual_rate ?? row.rate}%`, sortable: true },
+  { name: 'compounding_frequency', label: 'Compounding', align: 'left', field: row => row.compounding_frequency ?? row.period, sortable: true }
 ]
 
 async function loadItems() {
   loading.value = true
   try {
-    items.value = await api.interestPolicies.list()
-  } catch {
-    items.value = []
+    const data = await api.interestPolicies.list()
+    items.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to load interest policies: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -73,16 +81,19 @@ async function loadItems() {
 async function saveItem() {
   saving.value = true
   try {
-    const res = await api.interestPolicies.create(form.value).catch(() => ({
-      id: items.value.length + 1,
-      ...form.value,
-      created_at: new Date().toISOString()
-    }))
+    const payload = {
+      policy_name: form.value.policy_name,
+      account_type_id: Number(form.value.account_type_id),
+      annual_rate: form.value.rate,
+      compounding_frequency: form.value.compounding_frequency || 'MONTHLY',
+      effective_date: new Date().toISOString().split('T')[0]
+    }
+    const res = await api.interestPolicies.create(payload)
     items.value.push(res)
     $q.notify({ type: 'positive', message: 'Policy created successfully', position: 'top' })
     dialogOpen.value = false
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.message || 'Error', position: 'top' })
+    $q.notify({ type: 'negative', message: err.message || 'Error saving policy', position: 'top' })
   } finally {
     saving.value = false
   }

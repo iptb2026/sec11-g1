@@ -69,20 +69,21 @@ const initialPagination = { sortBy: 'id', descending: true, page: 1, rowsPerPage
 
 const columns = [
   { name: 'id', label: 'ID', align: 'left', field: 'id', sortable: true, style: 'width: 70px' },
-  { name: 'reference_number', label: 'Reference No.', align: 'left', field: 'reference_number', sortable: true },
+  { name: 'reference_number', label: 'Reference No.', align: 'left', field: row => row.transfer_reference || row.reference_number, sortable: true },
   { name: 'source_account_id', label: 'Source Account', align: 'left', field: 'source_account_id', sortable: true },
   { name: 'destination_account_id', label: 'Dest Account', align: 'left', field: 'destination_account_id', sortable: true },
-  { name: 'amount', label: 'Amount', align: 'left', field: 'amount', sortable: true },
+  { name: 'amount', label: 'Amount', align: 'left', field: row => `₱${Number(row.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sortable: true },
   { name: 'status', label: 'Status', align: 'left', field: 'status', sortable: true },
-  { name: 'created_at', label: 'Date/Time', align: 'left', field: 'created_at', sortable: true }
+  { name: 'created_at', label: 'Date/Time', align: 'left', field: row => new Date(row.created_at).toLocaleString(), sortable: true }
 ]
 
 async function loadItems() {
   loading.value = true
   try {
-    items.value = await api.transfers.list()
-  } catch {
-    items.value = []
+    const data = await api.transfers.list()
+    items.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to load transfers: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -91,16 +92,15 @@ async function loadItems() {
 async function processTransfer() {
   saving.value = true
   try {
+    const refNum = `TRF-${Date.now().toString().slice(-6)}`
     const payload = {
-      ...form.value,
-      reference_number: `TRF-${Date.now().toString().slice(-6)}`,
-      status: 'COMPLETED'
+      source_account_id: Number(form.value.source_account_id),
+      destination_account_id: Number(form.value.destination_account_id),
+      transfer_reference: refNum,
+      amount: form.value.amount,
+      transfer_type: 'INTERNAL'
     }
-    const res = await api.transfers.create(payload).catch(() => ({
-      id: items.value.length + 1,
-      ...payload,
-      created_at: new Date().toISOString()
-    }))
+    const res = await api.transfers.create(payload)
     items.value.unshift(res)
     $q.notify({ type: 'positive', message: 'Transfer completed successfully', position: 'top' })
     dialogOpen.value = false

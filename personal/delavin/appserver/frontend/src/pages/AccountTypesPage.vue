@@ -203,7 +203,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { api, defaultAccountTypes } from '@/services/api'
+import { api } from '@/services/api'
 
 const $q = useQuasar()
 
@@ -249,9 +249,9 @@ async function loadItems() {
   loading.value = true
   try {
     const data = await api.accountTypes.list()
-    items.value = Array.isArray(data) && data.length > 0 ? data : defaultAccountTypes
+    items.value = Array.isArray(data) ? data : []
   } catch (err) {
-    items.value = defaultAccountTypes
+    $q.notify({ type: 'negative', message: 'Failed to load account types: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -288,36 +288,21 @@ function openEditDialog(item) {
 async function saveItem() {
   saving.value = true
   try {
+    const payload = {
+      type_code: form.value.type_code,
+      type_name: form.value.type_name,
+      minimum_balance: form.value.minimum_balance,
+      opening_deposit: form.value.opening_deposit,
+      annual_interest_rate: form.value.annual_interest_rate,
+      daily_withdrawal_limit: form.value.daily_withdrawal_limit
+    }
     if (isEditing.value) {
-      const payload = {
-        type_code: form.value.type_code,
-        type_name: form.value.type_name,
-        minimum_balance: form.value.minimum_balance,
-        opening_deposit: form.value.opening_deposit,
-        annual_interest_rate: form.value.annual_interest_rate,
-        daily_withdrawal_limit: form.value.daily_withdrawal_limit
-      }
-      const updated = await api.accountTypes.update(form.value.id, payload).catch(() => ({
-        id: form.value.id,
-        ...payload
-      }))
+      const updated = await api.accountTypes.update(form.value.id, payload)
       const idx = items.value.findIndex(i => i.id === form.value.id)
       if (idx !== -1) items.value[idx] = { ...items.value[idx], ...updated }
       $q.notify({ type: 'positive', message: 'Account type updated', position: 'top' })
     } else {
-      const payload = {
-        type_code: form.value.type_code,
-        type_name: form.value.type_name,
-        minimum_balance: form.value.minimum_balance,
-        opening_deposit: form.value.opening_deposit,
-        annual_interest_rate: form.value.annual_interest_rate,
-        daily_withdrawal_limit: form.value.daily_withdrawal_limit
-      }
-      const created = await api.accountTypes.create(payload).catch(() => ({
-        id: items.value.length > 0 ? Math.max(...items.value.map(i => i.id)) + 1 : 1,
-        ...payload,
-        created_at: new Date().toISOString()
-      }))
+      const created = await api.accountTypes.create(payload)
       items.value.push(created)
       $q.notify({ type: 'positive', message: 'Account type created', position: 'top' })
     }
@@ -338,7 +323,7 @@ async function executeDelete() {
   if (!itemToDelete.value) return
   deleting.value = true
   try {
-    await api.accountTypes.delete(itemToDelete.value.id).catch(() => {})
+    await api.accountTypes.delete(itemToDelete.value.id)
     items.value = items.value.filter(i => i.id !== itemToDelete.value.id)
     $q.notify({ type: 'positive', message: 'Account type deleted', position: 'top' })
     deleteDialogOpen.value = false

@@ -180,7 +180,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { api, defaultRoles } from '@/services/api'
+import { api } from '@/services/api'
 
 const $q = useQuasar()
 
@@ -252,10 +252,9 @@ async function loadRoles() {
   loading.value = true
   try {
     const data = await api.roles.list()
-    roles.value = Array.isArray(data) && data.length > 0 ? data : defaultRoles
+    roles.value = Array.isArray(data) ? data : []
   } catch (err) {
-    console.error('Failed to load roles:', err)
-    roles.value = defaultRoles
+    $q.notify({ type: 'negative', message: 'Failed to load roles: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -291,54 +290,22 @@ async function saveRole() {
         role_code: form.value.role_code,
         role_name: form.value.role_name,
         description: form.value.description
-      }).catch(() => {
-        // Fallback local update
-        return {
-          id: form.value.id,
-          role_code: form.value.role_code,
-          role_name: form.value.role_name,
-          description: form.value.description
-        }
       })
       const index = roles.value.findIndex(r => r.id === form.value.id)
-      if (index !== -1) {
-        roles.value[index] = { ...roles.value[index], ...updated }
-      }
-      $q.notify({
-        type: 'positive',
-        message: 'Role updated successfully',
-        position: 'top'
-      })
+      if (index !== -1) roles.value[index] = { ...roles.value[index], ...updated }
+      $q.notify({ type: 'positive', message: 'Role updated successfully', position: 'top' })
     } else {
       const newRole = await api.roles.create({
         role_code: form.value.role_code,
         role_name: form.value.role_name,
         description: form.value.description
-      }).catch(() => {
-        // Fallback local insert
-        const nextId = roles.value.length > 0 ? Math.max(...roles.value.map(r => r.id)) + 1 : 1
-        return {
-          id: nextId,
-          role_code: form.value.role_code,
-          role_name: form.value.role_name,
-          description: form.value.description,
-          created_at: new Date().toISOString()
-        }
       })
       roles.value.push(newRole)
-      $q.notify({
-        type: 'positive',
-        message: 'Role created successfully',
-        position: 'top'
-      })
+      $q.notify({ type: 'positive', message: 'Role created successfully', position: 'top' })
     }
     dialogOpen.value = false
   } catch (err) {
-    $q.notify({
-      type: 'negative',
-      message: err.message || 'Failed to save role',
-      position: 'top'
-    })
+    $q.notify({ type: 'negative', message: err.message || 'Failed to save role', position: 'top' })
   } finally {
     saving.value = false
   }
@@ -353,23 +320,13 @@ async function executeDelete() {
   if (!roleToDelete.value) return
   deleting.value = true
   try {
-    await api.roles.delete(roleToDelete.value.id).catch(() => {
-      // Fallback local removal
-    })
+    await api.roles.delete(roleToDelete.value.id)
     roles.value = roles.value.filter(r => r.id !== roleToDelete.value.id)
-    $q.notify({
-      type: 'positive',
-      message: 'Role deleted successfully',
-      position: 'top'
-    })
+    $q.notify({ type: 'positive', message: 'Role deleted successfully', position: 'top' })
     deleteDialogOpen.value = false
     roleToDelete.value = null
   } catch (err) {
-    $q.notify({
-      type: 'negative',
-      message: err.message || 'Failed to delete role',
-      position: 'top'
-    })
+    $q.notify({ type: 'negative', message: err.message || 'Failed to delete role', position: 'top' })
   } finally {
     deleting.value = false
   }

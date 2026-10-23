@@ -31,7 +31,7 @@
           <q-form @submit="processDeposit" class="q-gutter-md">
             <q-input v-model="form.account_id" label="Account ID *" outlined dense type="number" :rules="[val => !!val || 'Required']" />
             <q-input v-model="form.amount" label="Amount (₱) *" outlined dense type="number" step="0.01" :rules="[val => !!val && val > 0 || 'Valid amount required']" />
-            <q-select v-model="form.channel" :options="['OVER_THE_COUNTER', 'ATM', 'ONLINE', 'CHECK']" label="Channel" outlined dense />
+            <q-select v-model="form.channel" :options="['CASH', 'ATM', 'ONLINE', 'INTERBANK']" label="Channel" outlined dense />
             <q-input v-model="form.reference_number" label="Reference Number" outlined dense />
             <div class="row justify-end q-gutter-sm q-mt-md">
               <q-btn label="Cancel" flat color="grey-7" v-close-popup />
@@ -58,7 +58,7 @@ const dialogOpen = ref(false)
 const form = ref({
   account_id: 1,
   amount: '',
-  channel: 'OVER_THE_COUNTER',
+  channel: 'CASH',
   reference_number: ''
 })
 
@@ -68,17 +68,18 @@ const columns = [
   { name: 'id', label: 'ID', align: 'left', field: 'id', sortable: true, style: 'width: 70px' },
   { name: 'reference_number', label: 'Reference No.', align: 'left', field: 'reference_number', sortable: true },
   { name: 'account_id', label: 'Account ID', align: 'left', field: 'account_id', sortable: true },
-  { name: 'amount', label: 'Amount', align: 'left', field: 'amount', sortable: true },
-  { name: 'channel', label: 'Channel', align: 'left', field: 'channel', sortable: true },
-  { name: 'created_at', label: 'Date/Time', align: 'left', field: 'created_at', sortable: true }
+  { name: 'amount', label: 'Amount', align: 'left', field: row => `₱${Number(row.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sortable: true },
+  { name: 'channel', label: 'Channel', align: 'left', field: row => row.deposit_channel || row.channel, sortable: true },
+  { name: 'created_at', label: 'Date/Time', align: 'left', field: row => new Date(row.created_at || row.transaction_date).toLocaleString(), sortable: true }
 ]
 
 async function loadItems() {
   loading.value = true
   try {
-    items.value = await api.deposits.list()
-  } catch {
-    items.value = []
+    const data = await api.deposits.list()
+    items.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to load deposits: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -88,12 +89,13 @@ async function processDeposit() {
   saving.value = true
   try {
     const refNum = form.value.reference_number || `DEP-${Date.now().toString().slice(-6)}`
-    const payload = { ...form.value, reference_number: refNum }
-    const res = await api.deposits.create(payload).catch(() => ({
-      id: items.value.length + 1,
-      ...payload,
-      created_at: new Date().toISOString()
-    }))
+    const payload = {
+      account_id: Number(form.value.account_id),
+      amount: form.value.amount,
+      deposit_channel: form.value.channel || 'CASH',
+      reference_number: refNum
+    }
+    const res = await api.deposits.create(payload)
     items.value.unshift(res)
     $q.notify({ type: 'positive', message: 'Deposit recorded successfully', position: 'top' })
     dialogOpen.value = false
