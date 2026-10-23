@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.security import get_current_user
 from app.database.session import Base, engine
 
 # ==== LAYER 1: Foundation & Reference Data ====
@@ -24,42 +25,48 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
-# Allow frontend to communicate freely with the API
+# Allows the Quasar frontend (a different origin/port, e.g. http://localhost:9000)
+# to call this API from the browser. Wide open here since this is a learning
+# project with no real users; a production app would restrict allow_origins.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Every router except /auth requires a logged-in user (see get_current_user).
+# /auth stays open so people can log in; /auth/logout checks its own token.
+login_required = [Depends(get_current_user)]
+
 # ==== LAYER 1: Foundation & Reference Data ====
-app.include_router(roles.router)
-app.include_router(account_types.router)
-app.include_router(banks.router)
-app.include_router(fee_types.router)
+app.include_router(roles.router, dependencies=login_required)
+app.include_router(account_types.router, dependencies=login_required)
+app.include_router(banks.router, dependencies=login_required)
+app.include_router(fee_types.router, dependencies=login_required)
 
 # ==== LAYER 2: Identity & Access ====
-app.include_router(users.router)
+app.include_router(users.router, dependencies=login_required)
 app.include_router(auth.router)
-app.include_router(sessions.router)
-app.include_router(audit_logs.router)
+app.include_router(sessions.router, dependencies=login_required)
+app.include_router(audit_logs.router, dependencies=login_required)
 
 # ==== LAYER 3: Account Configuration ====
-app.include_router(accounts.router)
-app.include_router(withdrawal_limits.router)
-app.include_router(interest_policies.router)
+app.include_router(accounts.router, dependencies=login_required)
+app.include_router(withdrawal_limits.router, dependencies=login_required)
+app.include_router(interest_policies.router, dependencies=login_required)
 
 # ==== LAYER 4: Transactions ====
-app.include_router(deposits.router)
-app.include_router(withdrawals.router)
-app.include_router(transfers.router)
-app.include_router(interbank_transfers.router)
+app.include_router(deposits.router, dependencies=login_required)
+app.include_router(withdrawals.router, dependencies=login_required)
+app.include_router(transfers.router, dependencies=login_required)
+app.include_router(interbank_transfers.router, dependencies=login_required)
 
 # ==== LAYER 5: Financial Records & Ledger ====
-app.include_router(fee_records.router)
-app.include_router(interest_records.router)
-app.include_router(ledger_entries.router)
+app.include_router(fee_records.router, dependencies=login_required)
+app.include_router(interest_records.router, dependencies=login_required)
+app.include_router(ledger_entries.router, dependencies=login_required)
 
 
 @app.get("/", tags=["Health"])
