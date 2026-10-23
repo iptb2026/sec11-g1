@@ -1,3 +1,4 @@
+# ==== LAYER 3: Account Configuration ====
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,7 +9,7 @@ from app.database.session import get_db
 from app.models.account import Account
 from app.models.account_type import AccountType
 from app.models.user import User
-from app.schemas.account import AccountCreate, AccountOut, AccountUpdate
+from app.schemas.account import AccountCreate, AccountUpdate, AccountOut
 
 router = APIRouter(prefix="/accounts", tags=["Layer 3 - Accounts"])
 
@@ -27,6 +28,9 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="account_number already exists")
 
+    # The starting balance comes from the account type's opening_deposit —
+    # never from the client. This is the same "don't trust the client with
+    # money fields" lesson from AccountCreate in the old single-table version.
     starting_balance = account_type.opening_deposit
 
     new_account = Account(
@@ -86,4 +90,3 @@ def delete_account(account_id: int, db: Session = Depends(get_db)):
 
     db.delete(account)
     commit_or_409(db, "Cannot delete this account — related transactions or records still reference it")
-

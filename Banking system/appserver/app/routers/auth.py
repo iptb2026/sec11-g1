@@ -1,3 +1,4 @@
+# ==== LAYER 2: Identity & Access ====
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -5,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import check_password, create_access_token, oauth2_scheme
+from app.core.security import check_password, create_token, oauth2_scheme
 from app.database.session import get_db
 from app.models.session import UserSession
 from app.models.user import User
@@ -30,9 +31,10 @@ def login(
     if user.account_status != "ACTIVE":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active")
 
-    token = create_access_token(user.username)
+    token = create_token(user.username)
     expires_at = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
+    # Every successful login is recorded as a row in `sessions` (Layer 2 table).
     new_session = UserSession(
         user_id=user.id,
         jwt_token=token,
@@ -41,9 +43,10 @@ def login(
         expires_at=expires_at,
     )
     db.add(new_session)
-    user.last_login_at = datetime.utcnow()
-    db.commit()
 
+    user.last_login_at = datetime.utcnow()
+
+    db.commit()
     return Token(access_token=token)
 
 
@@ -55,4 +58,3 @@ def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
 
     session.revoked_at = datetime.utcnow()
     db.commit()
-
