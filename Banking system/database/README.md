@@ -47,12 +47,11 @@ SOURCE account_balance_audit.sql;
 |---|---|---|
 | `admin` | ADMIN | Admin pages |
 | `teller1` | STAFF | Staff pages |
-| `juandelacruz` | CUSTOMER | Savings account `1000-0000-0001`, opened with the `SAVINGS` type's opening deposit |
+| `jdelacruz` | CUSTOMER | Savings account `1000000001` |
 
 `seed.py` never changes rows that already exist. On the team `catarig` database that means:
-- `admin` already existed, so it keeps **its old password**, not `password123`.
-- `SAVINGS` already existed with an opening deposit of ₱0, so Juan's account opens at ₱0 (₱1,000 only on a fresh database). Deposit into it before a demo.
-- The older customer `jdelacruz` (account `1000000001`) is still there next to `juandelacruz`.
+- `admin` and `jdelacruz` already existed, so they keep **their old passwords**, not `password123`. Only `teller1` gets `password123` there.
+- `jdelacruz`'s account `1000000001` already exists with its real history (₱503 on 2026-10-23), so it is left as is. On a fresh database it opens with the `SAVINGS` opening deposit (₱1,000).
 
 ---
 

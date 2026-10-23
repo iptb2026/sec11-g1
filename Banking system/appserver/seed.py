@@ -38,7 +38,7 @@ ROLES = [
 USERS = [
     ("admin", "System", "Administrator", "admin@minibank.com", "ADMIN"),
     ("teller1", "Maria", "Santos", "teller1@minibank.com", "STAFF"),
-    ("juandelacruz", "Juan", "Dela Cruz", "juan@example.com", "CUSTOMER"),
+    ("jdelacruz", "Juan", "Dela Cruz", "jdelacruz@primebank.ph", "CUSTOMER"),
 ]
 
 # (type_code, type_name, minimum_balance, opening_deposit, annual_interest_rate, daily_withdrawal_limit)
@@ -66,7 +66,7 @@ INTEREST_POLICIES = [
 
 # (account_number, owner_username, account_type_code) — opened with the type's opening_deposit
 ACCOUNTS = [
-    ("1000-0000-0001", "juandelacruz", "SAVINGS"),
+    ("1000000001", "jdelacruz", "SAVINGS"),
 ]
 
 
