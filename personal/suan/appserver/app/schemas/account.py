@@ -3,22 +3,27 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AccountCreate(BaseModel):
-    account_number: str
+    account_number: str = Field(min_length=1)
     customer_id: int
     account_type_id: int
-    currency_code: str = "PHP"
+    # 3-letter ISO 4217 code, e.g. PHP or USD.
+    currency_code: str = Field(default="PHP", pattern=r"^[A-Z]{3}$")
     branch_code: Optional[str] = None
+    # NOTE: available_balance / ledger_balance are deliberately NOT accepted here.
+    # A new account's starting balance is the account_type's opening_deposit,
+    # computed by the server — never trust a client to set its own money fields.
 
 
 class AccountUpdate(BaseModel):
-    account_number: str
+    account_number: str = Field(min_length=1)
     customer_id: int
     account_type_id: int
-    currency_code: str = "PHP"
+    # 3-letter ISO 4217 code, e.g. PHP or USD.
+    currency_code: str = Field(default="PHP", pattern=r"^[A-Z]{3}$")
     branch_code: Optional[str] = None
     status: Literal["ACTIVE", "FROZEN", "CLOSED"] = "ACTIVE"
 

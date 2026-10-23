@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class InterbankTransferCreate(BaseModel):
@@ -11,9 +11,10 @@ class InterbankTransferCreate(BaseModel):
     target_bank_id: int
     target_account_number: str
     beneficiary_name: Optional[str] = None
-    reference_number: str
-    amount: Decimal
-    transfer_fee: Decimal = Decimal("0.00")
+    # Leave blank to let the server generate one (see app/core/references.py).
+    reference_number: Optional[str] = None
+    amount: Decimal = Field(gt=0)
+    transfer_fee: Decimal = Field(default=Decimal("0.00"), ge=0)
 
 
 class InterbankTransferStatusUpdate(BaseModel):

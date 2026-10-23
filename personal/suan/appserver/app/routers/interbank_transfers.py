@@ -4,6 +4,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.account_rules import ensure_can_credit, ensure_can_debit
+from app.core.references import generate_reference
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.bank import Bank
@@ -19,6 +21,8 @@ router = APIRouter(prefix="/interbank-transfers", tags=["Layer 4 - Interbank Tra
 
 @router.post("/", response_model=InterbankTransferOut, status_code=status.HTTP_201_CREATED)
 def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = Depends(get_db)):
+    # Lock the source account row for the duration of this transaction — see
+    # the same note in deposits.py / withdrawals.py.
     source = db.query(Account).filter(Account.id == transfer.source_account_id).with_for_update().first()
     if not source:
         raise HTTPException(status_code=400, detail="source_account_id does not exist")
@@ -26,20 +30,23 @@ def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = D
     bank = db.query(Bank).filter(Bank.id == transfer.target_bank_id).first()
     if not bank:
         raise HTTPException(status_code=400, detail="target_bank_id does not exist")
+    if bank.status != "ACTIVE":
+        raise HTTPException(status_code=400, detail="Target bank is INACTIVE")
 
-    existing = db.query(InterbankTransfer).filter(
-        InterbankTransfer.reference_number == transfer.reference_number
-    ).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="reference_number already exists")
-
-    if source.status != "ACTIVE":
-        raise HTTPException(status_code=400, detail=f"Source account is {source.status}, cannot transfer")
+    if transfer.reference_number:
+        existing = db.query(InterbankTransfer).filter(InterbankTransfer.reference_number == transfer.reference_number).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="reference_number already exists")
+    else:
+        transfer.reference_number = generate_reference(db, InterbankTransfer.reference_number, "IB")
 
     total_debit = transfer.amount + transfer.transfer_fee
-    if source.available_balance < total_debit:
-        raise HTTPException(status_code=400, detail="Insufficient balance to cover amount + transfer fee")
+    ensure_can_debit(db, source, total_debit, label="Source account")
 
+    # Unlike an internal `transfer`, the destination bank is external — we
+    # can only debit our own side. The transfer starts PROCESSING (not
+    # SUCCESS) because settlement with the other bank isn't instant; use
+    # PUT /interbank-transfers/{id}/status to move it to SUCCESS/FAILED later.
     new_transfer = InterbankTransfer(**transfer.model_dump(), status="PROCESSING")
     db.add(new_transfer)
 
@@ -68,9 +75,35 @@ def get_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
 def update_interbank_transfer_status(
     transfer_id: int, data: InterbankTransferStatusUpdate, db: Session = Depends(get_db)
 ):
-    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
+    """
+    Moves a PROCESSING transfer to its final settlement status (SUCCESS/FAILED/REVERSED).
+
+    FAILED and REVERSED mean the money never reached (or came back from) the
+    other bank, so amount + transfer_fee is returned to the source account.
+    Those two statuses are final: changing them again could refund twice.
+    """
+    # Lock the transfer row so two simultaneous status changes can't both refund.
+    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).with_for_update().first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
+
+    refunded_statuses = ("FAILED", "REVERSED")
+    if transfer.status in refunded_statuses:
+        if data.status == transfer.status:
+            return transfer
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transfer is already {transfer.status} and was refunded; its status can no longer change",
+        )
+
+    if data.status in refunded_statuses:
+        source = db.query(Account).filter(Account.id == transfer.source_account_id).with_for_update().first()
+        if not source:
+            raise HTTPException(status_code=400, detail="Source account no longer exists, cannot refund")
+        ensure_can_credit(source, label="Source account")
+        refund = transfer.amount + transfer.transfer_fee
+        source.available_balance += refund
+        source.ledger_balance += refund
 
     transfer.status = data.status
     if data.status in ("SUCCESS", "FAILED", "REVERSED"):
@@ -83,6 +116,7 @@ def update_interbank_transfer_status(
 
 @router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
+    """NOTE: does not move any money back — see the Layer 4 guide."""
     transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
