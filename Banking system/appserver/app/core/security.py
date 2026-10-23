@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.database.session import get_db
+from app.models.account import Account
+from app.models.role import Role
 from app.models.session import UserSession
 from app.models.user import User
 
@@ -80,3 +82,52 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise _unauthorized("Account is not active")
 
     return user
+
+
+# --- ROLE CHECKS ---
+
+ADMIN_ONLY = ("ADMIN",)
+ADMIN_STAFF = ("ADMIN", "STAFF")
+ALL_ROLES = ("ADMIN", "STAFF", "CUSTOMER")
+
+
+def role_code_of(user: User, db: Session) -> str | None:
+    role = db.query(Role).filter(Role.id == user.role_id).first()
+    return role.role_code if role else None
+
+
+def require_role(user: User, db: Session, allowed: tuple) -> None:
+    """Stops the request with 403 unless the user's role is in `allowed`."""
+    if role_code_of(user, db) not in allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Your role is not allowed to do this")
+
+
+def roles_required(allowed: tuple):
+    """Per-route guard: `dependencies=[roles_required(ADMIN_ONLY)]`. Runs before the body is validated."""
+    def guard(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        require_role(user, db, allowed)
+
+    return Depends(guard)
+
+
+def allow_roles(read: tuple, write: tuple):
+    """
+    Router-level guard used in main.py, in place of plain login_required.
+    GET requests need a role in `read`; POST/PUT/DELETE need a role in `write`.
+    Also requires login, since it depends on get_current_user.
+    """
+    def guard(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        allowed = read if request.method in ("GET", "HEAD") else write
+        require_role(user, db, allowed)
+
+    return Depends(guard)
+
+
+def own_account_ids(user: User, db: Session) -> list[int] | None:
+    """
+    For list/get endpoints that customers can read: None means "no filter"
+    (ADMIN/STAFF see everything); otherwise the ids of the customer's own accounts.
+    """
+    if role_code_of(user, db) in ADMIN_STAFF:
+        return None
+    return [a.id for a in db.query(Account.id).filter(Account.customer_id == user.id).all()]

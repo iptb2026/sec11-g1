@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
+from app.core.security import get_current_user, own_account_ids
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.account_type import AccountType
@@ -45,14 +46,19 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[AccountOut])
-def list_accounts(db: Session = Depends(get_db)):
-    return db.query(Account).all()
+def list_accounts(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    query = db.query(Account)
+    ids = own_account_ids(current_user, db)
+    if ids is not None:  # customers only see their own accounts' rows
+        query = query.filter(Account.id.in_(ids))
+    return query.all()
 
 
 @router.get("/{account_id}", response_model=AccountOut)
-def get_account(account_id: int, db: Session = Depends(get_db)):
+def get_account(account_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     account = db.query(Account).filter(Account.id == account_id).first()
-    if not account:
+    ids = own_account_ids(current_user, db)
+    if not account or (ids is not None and not account.id in ids):
         raise HTTPException(status_code=404, detail="Account not found")
     return account
 

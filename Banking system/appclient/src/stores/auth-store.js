@@ -58,24 +58,17 @@ export const useAuthStore = defineStore('auth', {
       })
       this.token = data.access_token
 
-      // No /auth/me endpoint exists on the backend, so the logged-in user's
-      // own record (and therefore their role) is resolved client-side by
-      // matching the username against the full user list.
-      const { data: users } = await api.get('/users/')
-      const me = users.find((u) => u.username === username)
-      if (!me) {
-        throw new Error('Logged in, but could not find a matching user record')
-      }
+      // GET /auth/me returns the logged-in user and their role. (Customers
+      // can't read the full user or role lists, so don't fetch those here.)
+      const { data: me } = await api.get('/auth/me')
 
       this.userId = me.id
       this.username = me.username
       this.firstName = me.first_name
       this.lastName = me.last_name
       this.roleId = me.role_id
-
-      const { data: role } = await api.get(`/roles/${me.role_id}`)
-      this.roleCode = role.role_code
-      this.roleName = role.role_name
+      this.roleCode = me.role_code
+      this.roleName = me.role_name
 
       this.persist()
     },
