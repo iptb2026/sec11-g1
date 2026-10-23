@@ -74,10 +74,35 @@ def get_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
 def update_interbank_transfer_status(
     transfer_id: int, data: InterbankTransferStatusUpdate, db: Session = Depends(get_db)
 ):
-    """Moves a PROCESSING transfer to its final settlement status (SUCCESS/FAILED/REVERSED)."""
-    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
+    """
+    Moves a PROCESSING transfer to its final settlement status (SUCCESS/FAILED/REVERSED).
+
+    FAILED and REVERSED mean the money never reached (or came back from) the
+    other bank, so amount + transfer_fee is returned to the source account.
+    Those two statuses are final: changing them again could refund twice.
+    """
+    # Lock the transfer row so two simultaneous status changes can't both refund.
+    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).with_for_update().first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
+
+    refunded_statuses = ("FAILED", "REVERSED")
+    if transfer.status in refunded_statuses:
+        if data.status == transfer.status:
+            return transfer
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transfer is already {transfer.status} and was refunded; its status can no longer change",
+        )
+
+    if data.status in refunded_statuses:
+        source = db.query(Account).filter(Account.id == transfer.source_account_id).with_for_update().first()
+        if not source:
+            raise HTTPException(status_code=400, detail="Source account no longer exists, cannot refund")
+        # Refunded even if the account was frozen/closed since — it is the customer's money.
+        refund = transfer.amount + (transfer.transfer_fee or 0)
+        source.available_balance += refund
+        source.ledger_balance += refund
 
     transfer.status = data.status
     if data.status in ("SUCCESS", "FAILED", "REVERSED"):
