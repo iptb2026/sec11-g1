@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user, own_account_ids
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.user import User
@@ -57,14 +58,19 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
 
 
 @router.get("/", response_model=list[WithdrawalOut])
-def list_withdrawals(db: Session = Depends(get_db)):
-    return db.query(Withdrawal).all()
+def list_withdrawals(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    query = db.query(Withdrawal)
+    ids = own_account_ids(current_user, db)
+    if ids is not None:  # customers only see their own accounts' rows
+        query = query.filter(Withdrawal.account_id.in_(ids))
+    return query.all()
 
 
 @router.get("/{withdrawal_id}", response_model=WithdrawalOut)
-def get_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
+def get_withdrawal(withdrawal_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     withdrawal = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
-    if not withdrawal:
+    ids = own_account_ids(current_user, db)
+    if not withdrawal or (ids is not None and not withdrawal.account_id in ids):
         raise HTTPException(status_code=404, detail="Withdrawal not found")
     return withdrawal
 

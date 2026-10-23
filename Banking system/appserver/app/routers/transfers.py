@@ -2,11 +2,14 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user, own_account_ids
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.transfer import Transfer
+from app.models.user import User
 from app.schemas.transfer import TransferCreate, TransferOut
 
 router = APIRouter(prefix="/transfers", tags=["Layer 4 - Transfers"])
@@ -65,14 +68,19 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[TransferOut])
-def list_transfers(db: Session = Depends(get_db)):
-    return db.query(Transfer).all()
+def list_transfers(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    query = db.query(Transfer)
+    ids = own_account_ids(current_user, db)
+    if ids is not None:  # customers only see their own accounts' rows
+        query = query.filter(or_(Transfer.source_account_id.in_(ids), Transfer.destination_account_id.in_(ids)))
+    return query.all()
 
 
 @router.get("/{transfer_id}", response_model=TransferOut)
-def get_transfer(transfer_id: int, db: Session = Depends(get_db)):
+def get_transfer(transfer_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
-    if not transfer:
+    ids = own_account_ids(current_user, db)
+    if not transfer or (ids is not None and not (transfer.source_account_id in ids or transfer.destination_account_id in ids)):
         raise HTTPException(status_code=404, detail="Transfer not found")
     return transfer
 

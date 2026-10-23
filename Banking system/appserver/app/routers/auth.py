@@ -6,11 +6,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import check_password, create_token, oauth2_scheme
+from app.core.security import check_password, create_token, get_current_user, oauth2_scheme
 from app.database.session import get_db
+from app.models.role import Role
 from app.models.session import UserSession
 from app.models.user import User
-from app.schemas.auth import Token
+from app.schemas.auth import MeOut, Token
+from app.schemas.user import UserOut
 
 router = APIRouter(prefix="/auth", tags=["Layer 2 - Auth"])
 
@@ -58,3 +60,14 @@ def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
 
     session.revoked_at = datetime.utcnow()
     db.commit()
+
+
+@router.get("/me", response_model=MeOut)
+def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Who is logged in, and with which role. Any logged-in user may call this."""
+    role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    return MeOut(
+        **UserOut.model_validate(current_user).model_dump(),
+        role_code=role.role_code if role else "",
+        role_name=role.role_name if role else "",
+    )

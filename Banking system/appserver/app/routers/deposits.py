@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user, own_account_ids
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.deposit import Deposit
@@ -42,14 +43,19 @@ def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[DepositOut])
-def list_deposits(db: Session = Depends(get_db)):
-    return db.query(Deposit).all()
+def list_deposits(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    query = db.query(Deposit)
+    ids = own_account_ids(current_user, db)
+    if ids is not None:  # customers only see their own accounts' rows
+        query = query.filter(Deposit.account_id.in_(ids))
+    return query.all()
 
 
 @router.get("/{deposit_id}", response_model=DepositOut)
-def get_deposit(deposit_id: int, db: Session = Depends(get_db)):
+def get_deposit(deposit_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
-    if not deposit:
+    ids = own_account_ids(current_user, db)
+    if not deposit or (ids is not None and not deposit.account_id in ids):
         raise HTTPException(status_code=404, detail="Deposit not found")
     return deposit
 

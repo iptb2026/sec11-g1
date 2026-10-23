@@ -1,8 +1,8 @@
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.security import get_current_user
+from app.core.security import ADMIN_ONLY, ADMIN_STAFF, ALL_ROLES, allow_roles
 from app.database.session import Base, engine
 
 # ==== LAYER 1: Foundation & Reference Data ====
@@ -36,37 +36,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Every router except /auth requires a logged-in user (see get_current_user).
-# /auth stays open so people can log in; /auth/logout checks its own token.
-login_required = [Depends(get_current_user)]
+# Every router except /auth requires a logged-in user with the right role
+# (see allow_roles in core/security.py). /auth stays open so people can log in.
+#   read  = roles allowed to GET, write = roles allowed to POST/PUT/DELETE
+# Routers that customers can read also filter rows to the customer's own
+# accounts, and /users checks "own profile" itself (see those routers).
+admin_only = [allow_roles(read=ADMIN_ONLY, write=ADMIN_ONLY)]
+reference_data = [allow_roles(read=ADMIN_STAFF, write=ADMIN_ONLY)]
+staff_work = [allow_roles(read=ADMIN_STAFF, write=ADMIN_STAFF)]
+customer_readable = [allow_roles(read=ALL_ROLES, write=ADMIN_STAFF)]
+users_policy = [allow_roles(read=ALL_ROLES, write=ALL_ROLES)]
 
 # ==== LAYER 1: Foundation & Reference Data ====
-app.include_router(roles.router, dependencies=login_required)
-app.include_router(account_types.router, dependencies=login_required)
-app.include_router(banks.router, dependencies=login_required)
-app.include_router(fee_types.router, dependencies=login_required)
+app.include_router(roles.router, dependencies=reference_data)
+app.include_router(account_types.router, dependencies=reference_data)
+app.include_router(banks.router, dependencies=reference_data)
+app.include_router(fee_types.router, dependencies=reference_data)
 
 # ==== LAYER 2: Identity & Access ====
-app.include_router(users.router, dependencies=login_required)
+app.include_router(users.router, dependencies=users_policy)
 app.include_router(auth.router)
-app.include_router(sessions.router, dependencies=login_required)
-app.include_router(audit_logs.router, dependencies=login_required)
+app.include_router(sessions.router, dependencies=admin_only)
+app.include_router(audit_logs.router, dependencies=admin_only)
 
 # ==== LAYER 3: Account Configuration ====
-app.include_router(accounts.router, dependencies=login_required)
-app.include_router(withdrawal_limits.router, dependencies=login_required)
-app.include_router(interest_policies.router, dependencies=login_required)
+app.include_router(accounts.router, dependencies=customer_readable)
+app.include_router(withdrawal_limits.router, dependencies=staff_work)
+app.include_router(interest_policies.router, dependencies=staff_work)
 
 # ==== LAYER 4: Transactions ====
-app.include_router(deposits.router, dependencies=login_required)
-app.include_router(withdrawals.router, dependencies=login_required)
-app.include_router(transfers.router, dependencies=login_required)
-app.include_router(interbank_transfers.router, dependencies=login_required)
+app.include_router(deposits.router, dependencies=customer_readable)
+app.include_router(withdrawals.router, dependencies=customer_readable)
+app.include_router(transfers.router, dependencies=customer_readable)
+app.include_router(interbank_transfers.router, dependencies=customer_readable)
 
 # ==== LAYER 5: Financial Records & Ledger ====
-app.include_router(fee_records.router, dependencies=login_required)
-app.include_router(interest_records.router, dependencies=login_required)
-app.include_router(ledger_entries.router, dependencies=login_required)
+app.include_router(fee_records.router, dependencies=staff_work)
+app.include_router(interest_records.router, dependencies=staff_work)
+app.include_router(ledger_entries.router, dependencies=staff_work)
 
 
 @app.get("/", tags=["Health"])
