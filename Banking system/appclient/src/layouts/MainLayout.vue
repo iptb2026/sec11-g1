@@ -42,6 +42,11 @@
           <q-item-section>Dashboard</q-item-section>
         </q-item>
 
+        <q-item clickable to="/profile">
+          <q-item-section avatar><q-icon name="person" /></q-item-section>
+          <q-item-section>My Profile</q-item-section>
+        </q-item>
+
         <template v-if="auth.isAdmin">
           <q-separator spaced />
           <q-item-label header>System Configuration</q-item-label>

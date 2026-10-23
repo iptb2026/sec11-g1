@@ -6,7 +6,12 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
@@ -17,28 +22,30 @@
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 420px">
-        <q-card-section>
-          <div class="text-h6">{{ editingId ? 'Edit Bank' : 'New Bank' }}</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">{{ editingId ? 'Edit Bank' : 'New Bank' }}</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-input v-model="form.bank_code" label="Bank Code" filled />
-          <q-input v-model="form.swift_code" label="SWIFT Code" filled />
-          <q-input v-model="form.bank_name" label="Bank Name" filled />
-          <q-input v-model="form.short_name" label="Short Name" filled />
-          <q-input v-model="form.contact_email" label="Contact Email" filled />
-          <q-select
-            v-model="form.status"
-            label="Status"
-            filled
-            :options="['ACTIVE', 'INACTIVE']"
-          />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-input v-model="form.bank_code" :rules="[required]" lazy-rules label="Bank Code" filled />
+            <q-input v-model="form.swift_code" label="SWIFT Code" filled />
+            <q-input v-model="form.bank_name" :rules="[required]" lazy-rules label="Bank Name" filled />
+            <q-input v-model="form.short_name" label="Short Name" filled />
+            <q-input v-model="form.contact_email" :rules="[optionalEmail]" lazy-rules label="Contact Email" filled />
+            <q-select
+              v-model="form.status"
+              label="Status"
+              filled
+              :options="['ACTIVE', 'INACTIVE']"
+            />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -48,6 +55,8 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required, optionalEmail } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -62,6 +71,7 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
@@ -77,9 +87,14 @@ const form = ref(emptyForm())
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/banks/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/banks/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 function openCreate () {
@@ -112,7 +127,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Bank saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -128,7 +143,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Bank deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }

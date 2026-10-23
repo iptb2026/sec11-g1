@@ -6,7 +6,12 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
@@ -17,30 +22,37 @@
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 440px">
-        <q-card-section>
-          <div class="text-h6">{{ editingId ? 'Edit Interest Policy' : 'New Interest Policy' }}</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">{{ editingId ? 'Edit Interest Policy' : 'New Interest Policy' }}</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-select
-            v-model="form.account_type_id"
-            label="Account Type"
-            filled
-            emit-value
-            map-options
-            :options="accountTypeOptions"
-          />
-          <q-input v-model="form.policy_name" label="Policy Name" filled />
-          <q-input v-model.number="form.annual_rate" label="Annual Rate %" type="number" filled />
-          <q-input v-model="form.compounding_frequency" label="Compounding Frequency" filled hint="e.g. MONTHLY" />
-          <q-input v-model="form.effective_date" label="Effective Date" filled hint="YYYY-MM-DD" />
-          <q-input v-model="form.expiration_date" label="Expiration Date" filled hint="YYYY-MM-DD (optional)" />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-select
+              v-model="form.account_type_id" :rules="[required]" lazy-rules
+              label="Account Type"
+              filled
+              emit-value
+              map-options
+              :options="accountTypeOptions"
+            />
+            <q-input v-model="form.policy_name" :rules="[required]" lazy-rules label="Policy Name" filled />
+            <q-input v-model.number="form.annual_rate" :rules="[required, nonNegative]" lazy-rules label="Annual Rate %" type="number" filled />
+            <q-select
+              v-model="form.compounding_frequency"
+              label="Compounding Frequency"
+              filled
+              :options="['DAILY', 'MONTHLY', 'QUARTERLY', 'YEARLY']"
+            />
+            <q-input v-model="form.effective_date" :rules="[isDate]" lazy-rules label="Effective Date" filled hint="YYYY-MM-DD" />
+            <q-input v-model="form.expiration_date" :rules="[optionalDate]" lazy-rules label="Expiration Date" filled hint="YYYY-MM-DD (optional)" />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -50,6 +62,8 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required, nonNegative, isDate, optionalDate } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -64,6 +78,7 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const accountTypeOptions = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
@@ -72,7 +87,7 @@ const emptyForm = () => ({
   account_type_id: null,
   policy_name: '',
   annual_rate: 0,
-  compounding_frequency: '',
+  compounding_frequency: 'MONTHLY',
   effective_date: '',
   expiration_date: '',
 })
@@ -80,9 +95,14 @@ const form = ref(emptyForm())
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/interest-policies/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/interest-policies/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadOptions () {
@@ -120,7 +140,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Interest policy saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -136,7 +156,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Interest policy deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }

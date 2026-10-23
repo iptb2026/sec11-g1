@@ -6,7 +6,12 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn dense flat round icon="delete" color="negative" @click="removeRow(props.row)" />
@@ -17,29 +22,36 @@
     <!-- balance_after is a point-in-time snapshot the backend fills in automatically -->
     <q-dialog v-model="showDialog">
       <q-card style="width: 420px">
-        <q-card-section>
-          <div class="text-h6">New Ledger Entry</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">New Ledger Entry</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-select
-            v-model="form.account_id"
-            label="Account"
-            filled
-            emit-value
-            map-options
-            :options="accountOptions"
-          />
-          <q-input v-model="form.transaction_reference" label="Transaction Reference" filled />
-          <q-input v-model="form.transaction_type" label="Transaction Type" filled hint="e.g. FEE, DEPOSIT, TRANSFER" />
-          <q-input v-model.number="form.debit_amount" label="Debit Amount" type="number" filled />
-          <q-input v-model.number="form.credit_amount" label="Credit Amount" type="number" filled />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-select
+              v-model="form.account_id" :rules="[required]" lazy-rules
+              label="Account"
+              filled
+              emit-value
+              map-options
+              :options="accountOptions"
+            />
+            <q-input v-model="form.transaction_reference" :rules="[required]" lazy-rules label="Transaction Reference" filled />
+            <q-select
+              v-model="form.transaction_type" :rules="[required]" lazy-rules
+              label="Transaction Type"
+              filled
+              :options="transactionTypeOptions"
+            />
+            <q-input v-model.number="form.debit_amount" :rules="[nonNegative]" lazy-rules label="Debit Amount" type="number" filled />
+            <q-input v-model.number="form.credit_amount" :rules="[nonNegative]" lazy-rules label="Credit Amount" type="number" filled />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -49,6 +61,8 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required, nonNegative } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -65,17 +79,28 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const accountOptions = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
 const emptyForm = () => ({ account_id: null, transaction_reference: '', transaction_type: '', debit_amount: 0, credit_amount: 0 })
+
+const transactionTypeOptions = [
+  'DEPOSIT', 'WITHDRAWAL', 'TRANSFER_DEBIT', 'TRANSFER_CREDIT',
+  'FEE', 'INTEREST', 'INTERBANK_DEBIT', 'INTERBANK_CREDIT', 'REVERSAL',
+]
 const form = ref(emptyForm())
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/ledger-entries/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/ledger-entries/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadOptions () {
@@ -95,7 +120,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Ledger entry created' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -111,7 +136,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Ledger entry deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }

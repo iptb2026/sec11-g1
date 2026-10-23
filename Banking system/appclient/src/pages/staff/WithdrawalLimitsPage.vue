@@ -6,7 +6,12 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
@@ -17,43 +22,45 @@
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 420px">
-        <q-card-section>
-          <div class="text-h6">{{ editingId ? 'Edit Withdrawal Limit' : 'New Withdrawal Limit' }}</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">{{ editingId ? 'Edit Withdrawal Limit' : 'New Withdrawal Limit' }}</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-select
-            v-model="form.account_id"
-            label="Account"
-            filled
-            emit-value
-            map-options
-            :options="accountOptions"
-          >
-            <template v-slot:option="scope">
-              <q-item v-bind="scope.itemProps">
-                <q-item-section>
-                  <q-item-label>{{ scope.opt.label }}</q-item-label>
-                  <q-item-label caption>{{ scope.opt.holder }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-          <q-input
-            v-if="form.account_id"
-            :model-value="accountHolderName"
-            label="Account Holder"
-            filled
-            readonly
-          />
-          <q-input v-model.number="form.daily_limit_amount" label="Daily Limit Amount" type="number" filled />
-          <q-input v-model="form.last_reset_date" label="Last Reset Date" filled hint="YYYY-MM-DD" />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-select
+              v-model="form.account_id" :rules="[required]" lazy-rules
+              label="Account"
+              filled
+              emit-value
+              map-options
+              :options="accountOptions"
+            >
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.label }}</q-item-label>
+                    <q-item-label caption>{{ scope.opt.holder }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+            <q-input
+              v-if="form.account_id"
+              :model-value="accountHolderName"
+              label="Account Holder"
+              filled
+              readonly
+            />
+            <q-input v-model.number="form.daily_limit_amount" :rules="[required, nonNegative]" lazy-rules label="Daily Limit Amount" type="number" filled />
+            <q-input v-model="form.last_reset_date" :rules="[isDate]" lazy-rules label="Last Reset Date" filled hint="YYYY-MM-DD" />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -63,6 +70,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required, nonNegative, isDate } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -76,6 +85,7 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const accountOptions = ref([])
 const accountHolderByAccountId = ref({})
 const loading = ref(false)
@@ -88,9 +98,14 @@ const accountHolderName = computed(() => accountHolderByAccountId.value[form.val
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/withdrawal-limits/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/withdrawal-limits/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadOptions () {
@@ -145,7 +160,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Withdrawal limit saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -161,7 +176,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Withdrawal limit deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }

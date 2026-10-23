@@ -6,7 +6,12 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
@@ -17,36 +22,38 @@
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 420px">
-        <q-card-section>
-          <div class="text-h6">{{ editingId ? 'Edit Fee Record' : 'New Fee Record' }}</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">{{ editingId ? 'Edit Fee Record' : 'New Fee Record' }}</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-select
-            v-model="form.account_id"
-            label="Account"
-            filled
-            emit-value
-            map-options
-            :options="accountOptions"
-          />
-          <q-select
-            v-model="form.fee_type_id"
-            label="Fee Type"
-            filled
-            emit-value
-            map-options
-            :options="feeTypeOptions"
-          />
-          <q-input v-model="form.transaction_reference" label="Transaction Reference" filled />
-          <q-input v-model.number="form.amount_charged" label="Amount Charged" type="number" filled />
-          <q-input v-model="form.remarks" label="Remarks" type="textarea" filled />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-select
+              v-model="form.account_id" :rules="[required]" lazy-rules
+              label="Account"
+              filled
+              emit-value
+              map-options
+              :options="accountOptions"
+            />
+            <q-select
+              v-model="form.fee_type_id" :rules="[required]" lazy-rules
+              label="Fee Type"
+              filled
+              emit-value
+              map-options
+              :options="feeTypeOptions"
+            />
+            <q-input v-model="form.transaction_reference" label="Transaction Reference" filled />
+            <q-input v-model.number="form.amount_charged" :rules="[positiveAmount]" lazy-rules label="Amount Charged" type="number" filled />
+            <q-input v-model="form.remarks" label="Remarks" type="textarea" filled />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -56,6 +63,8 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required, positiveAmount } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -70,6 +79,7 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const accountOptions = ref([])
 const feeTypeOptions = ref([])
 const loading = ref(false)
@@ -86,9 +96,14 @@ const form = ref(emptyForm())
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/fee-records/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/fee-records/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadOptions () {
@@ -128,7 +143,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Fee record saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -144,7 +159,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Fee record deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }

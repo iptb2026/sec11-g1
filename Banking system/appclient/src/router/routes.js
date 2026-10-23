@@ -10,6 +10,7 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', name: 'dashboard', component: () => import('@/pages/DashboardPage.vue') },
+      { path: 'profile', component: () => import('@/pages/ProfilePage.vue'), meta: { roles: ['ADMIN', 'STAFF', 'CUSTOMER'] } },
 
       // --- ADMIN: system configuration ---
       { path: 'admin/roles', component: () => import('@/pages/admin/RolesPage.vue'), meta: { roles: ['ADMIN'] } },

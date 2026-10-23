@@ -6,7 +6,12 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
@@ -17,20 +22,22 @@
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 400px">
-        <q-card-section>
-          <div class="text-h6">{{ editingId ? 'Edit Role' : 'New Role' }}</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">{{ editingId ? 'Edit Role' : 'New Role' }}</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-input v-model="form.role_code" label="Role Code" filled />
-          <q-input v-model="form.role_name" label="Role Name" filled />
-          <q-input v-model="form.description" label="Description" type="textarea" filled />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-input v-model="form.role_code" :rules="[required]" lazy-rules label="Role Code" filled />
+            <q-input v-model="form.role_name" :rules="[required]" lazy-rules label="Role Name" filled />
+            <q-input v-model="form.description" label="Description" type="textarea" filled />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -40,6 +47,8 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -52,6 +61,7 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
@@ -59,9 +69,14 @@ const form = ref({ role_code: '', role_name: '', description: '' })
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/roles/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/roles/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 function openCreate () {
@@ -87,7 +102,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Role saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -103,7 +118,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Role deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }

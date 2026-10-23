@@ -6,7 +6,12 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+      <template #top-right>
+        <q-input v-model="search" dense clearable placeholder="Search">
+          <template #append><q-icon name="search" /></template>
+        </q-input>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
@@ -17,34 +22,47 @@
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 460px">
-        <q-card-section>
-          <div class="text-h6">{{ editingId ? 'Edit User' : 'New User' }}</div>
-        </q-card-section>
+        <q-form @submit="save">
+          <q-card-section>
+            <div class="text-h6">{{ editingId ? 'Edit User' : 'New User' }}</div>
+          </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-input v-model="form.username" label="Username" filled />
-          <q-input v-model="form.password" label="Password" filled hint="Plain text here, hashed by the backend" />
-          <q-input v-model="form.email" label="Email" filled />
-          <q-input v-model="form.mobile_number" label="Mobile Number" filled />
-          <q-input v-model="form.first_name" label="First Name" filled />
-          <q-input v-model="form.middle_name" label="Middle Name" filled />
-          <q-input v-model="form.last_name" label="Last Name" filled />
-          <q-input v-model="form.date_of_birth" label="Date of Birth" filled hint="YYYY-MM-DD" />
-          <q-select
-            v-model="form.role_id"
-            label="Role"
-            filled
-            emit-value
-            map-options
-            :options="roleOptions"
-          />
-          <q-input v-model="form.account_status" label="Account Status" filled hint="e.g. ACTIVE" />
-        </q-card-section>
+          <q-card-section class="q-gutter-md">
+            <q-input v-model="form.username" :rules="[required]" lazy-rules label="Username" filled />
+            <q-input
+              v-model="form.password" :rules="[required]" lazy-rules
+              label="Password"
+              type="password"
+              filled
+              :hint="editingId ? 'Required to save: re-enter the current password or set a new one' : 'Hashed by the backend'"
+            />
+            <q-input v-model="form.email" :rules="[optionalEmail]" lazy-rules label="Email" filled />
+            <q-input v-model="form.mobile_number" label="Mobile Number" filled />
+            <q-input v-model="form.first_name" :rules="[required]" lazy-rules label="First Name" filled />
+            <q-input v-model="form.middle_name" label="Middle Name" filled />
+            <q-input v-model="form.last_name" :rules="[required]" lazy-rules label="Last Name" filled />
+            <q-input v-model="form.date_of_birth" :rules="[optionalDate]" lazy-rules label="Date of Birth" filled hint="YYYY-MM-DD" />
+            <q-select
+              v-model="form.role_id" :rules="[required]" lazy-rules
+              label="Role"
+              filled
+              emit-value
+              map-options
+              :options="roleOptions"
+            />
+            <q-select
+              v-model="form.account_status"
+              label="Account Status"
+              filled
+              :options="['ACTIVE', 'LOCKED', 'DISABLED']"
+            />
+          </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
-        </q-card-actions>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn color="primary" label="Save" type="submit" />
+          </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -54,6 +72,8 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
+import { required, optionalDate, optionalEmail } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -69,6 +89,7 @@ const columns = [
 ]
 
 const rows = ref([])
+const search = ref('')
 const roleOptions = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
@@ -89,9 +110,14 @@ const form = ref(emptyForm())
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/users/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/users/')
+    rows.value = data
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadRoleOptions () {
@@ -133,7 +159,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'User saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
@@ -149,7 +175,7 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'User deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
     }
   })
 }
