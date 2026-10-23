@@ -2,6 +2,8 @@
 
 Everything the Database Admins need for the team database, in one folder. Connection settings come from `appserver/app/core/config.py` (MySQL, schema `catarig`, `127.0.0.1:3306`, user `admin`). If MySQL runs in Docker on a different port, change it there; Alembic and `seed.py` read the same file.
 
+The team's MySQL (8.0) runs inside the **`ipt2-g1-home`** Docker container, which does not publish port 3306 to Windows. Run the backend, `alembic` and `seed.py` **inside that container** (where `127.0.0.1:3306` is correct), and pass `-Container ipt2-g1-home` to `backup.ps1`.
+
 | File | What it is |
 |---|---|
 | `verify.sql` | Health check: tables, foreign keys, row counts, plain-text passwords, demo users per role, balance reconciliation |
@@ -45,7 +47,12 @@ SOURCE account_balance_audit.sql;
 |---|---|---|
 | `admin` | ADMIN | Admin pages |
 | `teller1` | STAFF | Staff pages |
-| `juandelacruz` | CUSTOMER | Savings account `1000-0000-0001`, opened with ₱1,000 |
+| `juandelacruz` | CUSTOMER | Savings account `1000-0000-0001`, opened with the `SAVINGS` type's opening deposit |
+
+`seed.py` never changes rows that already exist. On the team `catarig` database that means:
+- `admin` already existed, so it keeps **its old password**, not `password123`.
+- `SAVINGS` already existed with an opening deposit of ₱0, so Juan's account opens at ₱0 (₱1,000 only on a fresh database). Deposit into it before a demo.
+- The older customer `jdelacruz` (account `1000000001`) is still there next to `juandelacruz`.
 
 ---
 
@@ -111,7 +118,7 @@ Teammates then only run `alembic upgrade head` after pulling. `alembic current` 
 | Backups | **Done.** `backup.ps1`. |
 | Seed data | **Done.** `seed.py` now covers every reference table and one customer account. |
 | A. Migrations (Alembic) | **Done.** Baseline `0001_baseline` creates exactly what `create_all` creates (checked table by table). |
-| B. Indexes | **Not needed as written.** The guide's four columns (`users.username`, `accounts.account_number`, `deposits.reference_number`, `transfers.transfer_reference`) are already `UNIQUE`, and MySQL indexes every unique column and every foreign key. Adding them again creates duplicate indexes. Revisit only if a specific non-unique search becomes slow. |
+| B. Indexes | **Not needed as written.** The guide's four columns (`users.username`, `accounts.account_number`, `deposits.reference_number`, `transfers.transfer_reference`) are already `UNIQUE`, and MySQL indexes every unique column and every foreign key. Adding them again creates duplicate indexes. Revisit only if a specific non-unique search becomes slow. The team database already has one such duplicate, `idx_interbank_reference` (same column as the unique `reference_number` index). It is declared in the model so Alembic leaves it alone; dropping it is safe but a team call. |
 | C. Balance floor `CHECK` | **Needs Backend first.** MySQL reports a `CHECK` violation as error 3819, which PyMySQL raises as `OperationalError`, not `IntegrityError`. `commit_or_409` only catches `IntegrityError`, and the balance updates use a plain `db.commit()`, so the API would return a 500. Backend must handle it before the constraint is added (as an Alembic migration). |
 | D. Balance audit view | **Done**, as a real reconciliation (the guide's version only listed balances). |
 | E. Soft delete | **Team decision.** Changes every `DELETE` endpoint; raise with Backend before doing anything. |

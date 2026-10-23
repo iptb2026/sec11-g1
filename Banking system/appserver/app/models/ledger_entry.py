@@ -1,5 +1,5 @@
 # ==== LAYER 5: Financial Records & Ledger ====
-from sqlalchemy import Column, BigInteger, String, DECIMAL, Enum, DateTime, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DECIMAL, Enum, DateTime, TIMESTAMP, ForeignKey, Index
 from sqlalchemy.sql import func
 
 from app.database.session import Base
@@ -7,6 +7,8 @@ from app.database.session import Base
 
 class LedgerEntry(Base):
     __tablename__ = "ledger_entries"
+    # Index behind the account_id foreign key; already exists in the team database.
+    __table_args__ = (Index("idx_ledger_account_id", "account_id"),)
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     account_id = Column(BigInteger, ForeignKey("accounts.id"), nullable=False)

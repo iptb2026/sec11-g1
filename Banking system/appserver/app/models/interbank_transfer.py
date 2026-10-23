@@ -1,5 +1,5 @@
 # ==== LAYER 4: Transactions ====
-from sqlalchemy import Column, BigInteger, String, DECIMAL, Enum, DateTime, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DECIMAL, Enum, DateTime, TIMESTAMP, ForeignKey, Index
 from sqlalchemy.sql import func
 
 from app.database.session import Base
@@ -7,6 +7,9 @@ from app.database.session import Base
 
 class InterbankTransfer(Base):
     __tablename__ = "interbank_transfers"
+    # Duplicates the unique index on reference_number (see database/README.md).
+    # Declared so Alembic autogenerate doesn't try to drop it.
+    __table_args__ = (Index("idx_interbank_reference", "reference_number"),)
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     source_account_id = Column(BigInteger, ForeignKey("accounts.id"), nullable=False)

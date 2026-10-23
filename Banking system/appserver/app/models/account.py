@@ -1,5 +1,5 @@
 # ==== LAYER 3: Account Configuration ====
-from sqlalchemy import Column, BigInteger, String, DECIMAL, Enum, TIMESTAMP, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DECIMAL, Enum, TIMESTAMP, DateTime, ForeignKey, Index
 from sqlalchemy.sql import func
 
 from app.database.session import Base
@@ -7,6 +7,8 @@ from app.database.session import Base
 
 class Account(Base):
     __tablename__ = "accounts"
+    # Index behind the customer_id foreign key; already exists in the team database.
+    __table_args__ = (Index("idx_accounts_customer_id", "customer_id"),)
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     account_number = Column(String(30), unique=True, nullable=False)
