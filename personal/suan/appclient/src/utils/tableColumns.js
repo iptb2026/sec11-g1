@@ -34,7 +34,17 @@ export function formatDate (val) {
   return `${day}\n${time}`
 }
 
+// Templates call tableColumns(columns) on every render. Returning the same
+// array for the same input keeps q-table stable (a new array each render made
+// tables with a custom body slot repeat one row's data).
+const cache = new WeakMap()
+
 export function tableColumns (columns) {
+  if (!cache.has(columns)) cache.set(columns, buildColumns(columns))
+  return cache.get(columns)
+}
+
+function buildColumns (columns) {
   const names = new Set(columns.map((c) => c.name))
   return columns
     .filter((col) => !(REDUNDANT_IDS[col.name] || []).some((readable) => names.has(readable)))

@@ -55,7 +55,7 @@
         </q-td>
       </template>
       <template #body-cell-date="props">
-        <q-td :props="props">{{ formatDate(props.row.date) }}</q-td>
+        <q-td :props="props" class="bank-cell-date">{{ formatDate(props.row.date) }}</q-td>
       </template>
       <template #body-cell-amount="props">
         <q-td :props="props" class="text-weight-bold" :class="props.row.direction === 'credit' ? 'text-credit' : 'text-debit'">
@@ -70,6 +70,7 @@
 import { computed, ref } from 'vue'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import api from '@/services/api'
+import { formatDate } from '@/utils/tableColumns'
 import { useAuthStore } from '@/stores/auth-store'
 
 const auth = useAuthStore()
@@ -96,11 +97,6 @@ function typeLabel (type) {
     'TRANSFER IN': 'Transfer received',
     INTERBANK: 'Interbank transfer',
   }[type] || type
-}
-
-function formatDate (val) {
-  if (!val) return '—'
-  return new Date(val).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 const totals = computed(() => rows.value.reduce((t, r) => {
