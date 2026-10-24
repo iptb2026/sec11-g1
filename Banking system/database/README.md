@@ -57,10 +57,11 @@ SOURCE account_balance_audit.sql;
 | `admin` | ADMIN | Admin pages |
 | `teller1` | STAFF | Staff pages |
 | `jdelacruz` | CUSTOMER | Savings account `1000000001` |
+| `auditor1` | AUDITOR | Every admin and operations page, read-only |
 
-`seed.py` never changes rows that already exist. On the team `catarig` database that means:
-- `admin` and `jdelacruz` already existed, so they keep **their old passwords**, not `password123`. Only `teller1` gets `password123` there.
-- `jdelacruz`'s account `1000000001` already exists with its real history (₱503 on 2026-10-23), so it is left as is. On a fresh database it opens with the `SAVINGS` opening deposit (₱1,000).
+`seed.py` never changes rows that already exist; use `set_password.py` to change a password.
+
+The team `catarig` database was reset to clean demo data on 2026-10-24 (section 2). Every login there uses `password123`, including the demo customers `lmercado` and `preyes` from `demo_data.py`. Its known-good backup is `backups/catarig_20261024_1702_KNOWN_GOOD.sql`.
 
 ---
 
