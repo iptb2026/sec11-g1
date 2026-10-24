@@ -70,7 +70,21 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
-      config: {},
+      config: {
+        // Banking palette (UI/UX Pro Max "Banking/Traditional Finance"): trust navy,
+        // premium gold accent, and AA-contrast green/red for money in/out.
+        brand: {
+          primary: '#1E3A8A',
+          secondary: '#0F172A',
+          accent: '#B8860B',
+          dark: '#0F172A',
+          positive: '#15803D',
+          negative: '#B91C1C',
+          info: '#1D4ED8',
+          warning: '#B45309'
+        },
+        notify: { position: 'top-right', timeout: 2500 }
+      },
 
       // iconSet: 'material-icons', // Quasar icon set
       // lang: 'en-US', // Quasar language pack

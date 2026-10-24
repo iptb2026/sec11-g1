@@ -1,6 +1,38 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="text-h5 q-mb-md">My Transactions</div>
+  <q-page>
+    <div class="row items-center q-mb-md">
+      <div class="text-h5">Transactions</div>
+    </div>
+
+    <div class="row q-col-gutter-lg q-mb-lg">
+      <div class="col-12 col-sm-4">
+        <div class="bank-card tx-sum">
+          <div class="bank-icon-tile tx-tile--in"><q-icon name="south_west" size="22px" /></div>
+          <div>
+            <div class="text-caption">Money in</div>
+            <div class="tx-sum__amount bank-amount text-credit">+₱{{ format(totals.in) }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-4">
+        <div class="bank-card tx-sum">
+          <div class="bank-icon-tile tx-tile--out"><q-icon name="north_east" size="22px" /></div>
+          <div>
+            <div class="text-caption">Money out</div>
+            <div class="tx-sum__amount bank-amount text-debit">-₱{{ format(totals.out) }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-4">
+        <div class="bank-card tx-sum">
+          <div class="bank-icon-tile tx-tile--count"><q-icon name="receipt_long" size="22px" /></div>
+          <div>
+            <div class="text-caption">Transactions</div>
+            <div class="tx-sum__amount bank-amount">{{ rows.length }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <q-table
       :rows="rows"
@@ -9,15 +41,24 @@
       :loading="loading"
       flat
       bordered
+      no-data-label="No transactions yet"
       :pagination="{ sortBy: 'date', descending: true, rowsPerPage: 15 }"
     >
       <template #body-cell-type="props">
         <q-td :props="props">
-          <q-badge :color="badgeColor(props.row.type)">{{ props.row.type }}</q-badge>
+          <div class="row items-center no-wrap q-gutter-x-sm">
+            <div class="tx-dir" :class="props.row.direction === 'credit' ? 'tx-tile--in' : 'tx-tile--out'">
+              <q-icon :name="props.row.direction === 'credit' ? 'south_west' : 'north_east'" size="16px" />
+            </div>
+            <span class="text-weight-medium">{{ typeLabel(props.row.type) }}</span>
+          </div>
         </q-td>
       </template>
+      <template #body-cell-date="props">
+        <q-td :props="props">{{ formatDate(props.row.date) }}</q-td>
+      </template>
       <template #body-cell-amount="props">
-        <q-td :props="props" :class="props.row.direction === 'credit' ? 'text-positive' : 'text-negative'">
+        <q-td :props="props" class="text-weight-bold" :class="props.row.direction === 'credit' ? 'text-credit' : 'text-debit'">
           {{ props.row.direction === 'credit' ? '+' : '-' }}₱{{ format(props.row.amount) }}
         </q-td>
       </template>
@@ -26,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
@@ -36,9 +77,9 @@ const rows = ref([])
 const loading = ref(true)
 
 const columns = [
-  { name: 'account_number', label: 'Account Number', field: 'account_number', align: 'left' },
+  { name: 'type', label: 'Transaction', field: 'type', align: 'left' },
   { name: 'date', label: 'Date', field: 'date', align: 'left', sortable: true },
-  { name: 'type', label: 'Type', field: 'type', align: 'left' },
+  { name: 'account_number', label: 'Account', field: 'account_number', align: 'left' },
   { name: 'reference', label: 'Reference', field: 'reference', align: 'left' },
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
 ]
@@ -47,15 +88,25 @@ function format (val) {
   return Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function badgeColor (type) {
+function typeLabel (type) {
   return {
-    DEPOSIT: 'positive',
-    WITHDRAWAL: 'negative',
-    'TRANSFER OUT': 'negative',
-    'TRANSFER IN': 'positive',
-    INTERBANK: 'negative',
-  }[type] || 'grey'
+    DEPOSIT: 'Deposit',
+    WITHDRAWAL: 'Withdrawal',
+    'TRANSFER OUT': 'Transfer sent',
+    'TRANSFER IN': 'Transfer received',
+    INTERBANK: 'Interbank transfer',
+  }[type] || type
 }
+
+function formatDate (val) {
+  if (!val) return '—'
+  return new Date(val).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+}
+
+const totals = computed(() => rows.value.reduce((t, r) => {
+  t[r.direction === 'credit' ? 'in' : 'out'] += Number(r.amount)
+  return t
+}, { in: 0, out: 0 }))
 
 // Reloads automatically after changes (other tabs, other users) — see useAutoRefresh.
 async function loadTransactions () {
@@ -149,3 +200,30 @@ async function loadTransactions () {
 
 useAutoRefresh(loadTransactions)
 </script>
+
+<style scoped>
+.tx-sum {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.tx-sum__amount {
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+
+.tx-dir {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tx-tile--in { background: #ECFDF5; color: var(--bank-credit); }
+.tx-tile--out { background: #FEF2F2; color: var(--bank-debit); }
+.tx-tile--count { background: #EFF6FF; color: #1D4ED8; }
+</style>

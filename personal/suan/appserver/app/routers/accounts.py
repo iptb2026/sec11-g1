@@ -1,11 +1,14 @@
 # ==== LAYER 3: Account Configuration ====
+import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.account_rules import get_or_create_withdrawal_limit
 from app.core.db_utils import commit_or_409
+from app.core.references import account_number_for
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.account_type import AccountType
@@ -44,9 +47,13 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     validate_customer(db, account.customer_id)
     account_type = validate_account_type(db, account.account_type_id)
 
-    existing = db.query(Account).filter(Account.account_number == account.account_number).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="account_number already exists")
+    data = account.model_dump()
+    typed_number = (account.account_number or "").strip()
+    if typed_number:
+        existing = db.query(Account).filter(Account.account_number == typed_number).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="account_number already exists")
+    data["account_number"] = typed_number or None
 
     # The starting balance comes from the account type's opening_deposit —
     # never from the client. This is the same "don't trust the client with
@@ -54,13 +61,26 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     starting_balance = account_type.opening_deposit
 
     new_account = Account(
-        **account.model_dump(),
+        **data,
         available_balance=starting_balance,
         ledger_balance=starting_balance,
         status="ACTIVE",
     )
+    if not typed_number:
+        # Blank account number: the number comes from the database id, which
+        # only exists after the insert. Insert with a unique placeholder first,
+        # then set the real number in the same transaction.
+        new_account.account_number = f"PENDING-{uuid.uuid4().hex[:20]}"
     db.add(new_account)
     db.flush()
+    if not typed_number:
+        new_account.account_number = account_number_for(new_account.id)
+        try:
+            db.flush()
+        except IntegrityError:
+            # Someone typed this exact number by hand earlier.
+            db.rollback()
+            raise HTTPException(status_code=409, detail="The generated account number is already taken; enter one manually")
 
     # Every account starts with the daily withdrawal limit of its type
     # (skipped when the type's limit is 0 = no limit).

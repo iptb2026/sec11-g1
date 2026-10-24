@@ -6,23 +6,25 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
+    <q-table :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn
             v-if="props.row.status === 'PROCESSING'"
             dense flat round icon="check_circle" color="positive"
             title="Mark SUCCESS"
+            aria-label="Mark transfer as successful"
             @click="markStatus(props.row, 'SUCCESS')"
           />
           <q-btn
             v-if="props.row.status === 'PROCESSING'"
             dense flat round icon="cancel" color="negative"
             title="Mark FAILED"
+            aria-label="Mark transfer as failed"
             @click="markStatus(props.row, 'FAILED')"
           />
           <!-- No edit: a posted interbank transfer can only change status (see Mark SUCCESS / FAILED). -->
-          <q-btn dense flat round icon="delete" color="negative" @click="removeRow(props.row)" />
+          <q-btn dense flat round icon="delete" aria-label="Delete" color="negative" @click="removeRow(props.row)" />
         </q-td>
       </template>
     </q-table>
@@ -86,6 +88,7 @@
 import { ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
+import { tableColumns } from '@/utils/tableColumns'
 import api, { errorMessage } from '@/services/api'
 
 const $q = useQuasar()

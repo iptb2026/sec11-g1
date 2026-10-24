@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field
 
 
 class AccountCreate(BaseModel):
-    account_number: str = Field(min_length=1)
+    # Leave blank to let the server assign the next number (1000000001, 1000000002, ...).
+    account_number: Optional[str] = None
     customer_id: int
     account_type_id: int
     # 3-letter ISO 4217 code, e.g. PHP or USD.
