@@ -41,18 +41,18 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
-          <!-- The account number is assigned by the backend (1000000001, 1000000002, ...); shown read-only when editing. -->
+          <!-- The account number is assigned by the backend (1000000000 + id): a new account
+               shows the number it will get, an existing one shows its number. Never typed in. -->
           <q-input
-            v-if="editingId"
-            v-model="form.account_number"
+            :model-value="form.account_number"
             label="Account Number"
             filled
             readonly
-          />
-          <div v-else class="account-number-note">
-            <q-icon name="auto_awesome" size="18px" />
-            The account number is assigned automatically when you save.
-          </div>
+            :loading="!editingId && !form.account_number"
+            :hint="editingId ? '' : 'Assigned automatically'"
+          >
+            <template #prepend><q-icon name="tag" /></template>
+          </q-input>
           <q-select
             v-model="form.customer_id"
             label="Customer"
@@ -202,10 +202,17 @@ async function refresh ({ silent = false } = {}) {
   }
 }
 
-function openCreate () {
+async function openCreate () {
   editingId.value = null
   form.value = emptyForm()
   showDialog.value = true
+  // Show the number this account will get; the backend assigns the final one on save.
+  try {
+    const { data } = await api.get('/accounts/next-number')
+    if (!editingId.value) form.value.account_number = data.account_number
+  } catch {
+    form.value.account_number = 'Assigned on save'
+  }
 }
 
 function openEdit (row) {
@@ -263,17 +270,3 @@ function removeRow (row) {
 
 useAutoRefresh(refresh)
 </script>
-
-<style scoped>
-.account-number-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: #EFF6FF;
-  color: #1E3A8A;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-</style>

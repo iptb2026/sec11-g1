@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -94,6 +95,26 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=list[AccountOut])
 def list_accounts(db: Session = Depends(get_db)):
     return db.query(Account).all()
+
+
+@router.get("/next-number")
+def next_account_number(db: Session = Depends(get_db)):
+    """
+    The number the next new account will get (1000000000 + the next id), so the
+    New Account form can show it. Opening the account still assigns the real
+    number: if two people open accounts at the same moment, one of them gets
+    the following number, and the save message shows the final one.
+    """
+    # MySQL caches AUTO_INCREMENT in information_schema (up to a day by
+    # default); expiry 0 makes this read the current value.
+    db.execute(text("SET SESSION information_schema_stats_expiry = 0"))
+    next_id = db.execute(text(
+        "SELECT AUTO_INCREMENT FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts'"
+    )).scalar()
+    if not next_id:
+        next_id = (db.query(func.max(Account.id)).scalar() or 0) + 1
+    return {"account_number": account_number_for(next_id)}
 
 
 @router.get("/{account_id}", response_model=AccountOut)
