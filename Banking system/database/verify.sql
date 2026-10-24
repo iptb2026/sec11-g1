@@ -132,3 +132,34 @@ ORDER BY r.role_code;
 SELECT account_id, account_number, owner, current_balance, expected_balance, difference
 FROM account_balance_audit
 WHERE difference <> 0;
+
+
+-- ---------------------------------------------------------------------
+-- 7. The ledger agrees with each balance.
+--    Every balance change writes a ledger row (since PR #19), so an
+--    account's credits minus debits should equal its balance.
+--    Good: no rows returned.
+--    ledger_entries = 0 means the account's transactions predate the
+--    automatic ledger: run `python backfill_ledger.py` in appserver.
+-- ---------------------------------------------------------------------
+SELECT a.id AS account_id, a.account_number, a.available_balance,
+       COALESCE(l.ledger_total, 0) AS ledger_total,
+       COALESCE(l.entries, 0)      AS ledger_entries
+FROM accounts a
+LEFT JOIN (SELECT account_id,
+                  SUM(credit_amount - debit_amount) AS ledger_total,
+                  COUNT(*) AS entries
+           FROM ledger_entries GROUP BY account_id) l
+       ON l.account_id = a.id
+WHERE COALESCE(l.ledger_total, 0) <> a.available_balance;
+
+
+-- ---------------------------------------------------------------------
+-- 8. The balance floor is in place (migration 0002_balance_checks).
+--    Good: 2 rows, chk_accounts_available_balance and
+--    chk_accounts_ledger_balance. None: run `alembic upgrade head`.
+-- ---------------------------------------------------------------------
+SELECT CONSTRAINT_NAME, CHECK_CLAUSE
+FROM information_schema.CHECK_CONSTRAINTS
+WHERE CONSTRAINT_SCHEMA = DATABASE()
+  AND CONSTRAINT_NAME LIKE 'chk_accounts_%';

@@ -22,12 +22,19 @@
 --   - interbank transfers + their fee   (interbank_transfers.py; FAILED and
 --                                        REVERSED are refunded, so not counted)
 --
+-- Since PR #19 a DELETE reverses the money and removes the row, and a PUT
+-- can't change an amount, so both keep this view at 0.
+--
 -- A non-zero difference usually means one of:
---   * a transaction was edited or deleted through PUT/DELETE — those
---     endpoints do not adjust the balance (see the notes in deposits.py)
+--   * a transaction was edited or deleted before PR #19, when PUT/DELETE
+--     did not adjust the balance
+--   * an interbank transfer was marked FAILED/REVERSED before the refund
+--     fix, so it was never refunded
 --   * the account type's opening_deposit was changed after the account
 --     was opened
 --   * a balance was changed directly in MySQL
+--
+-- The ledger has its own check: verify.sql section 7.
 -- =====================================================================
 
 CREATE OR REPLACE VIEW account_balance_audit AS
