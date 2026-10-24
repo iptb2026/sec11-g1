@@ -6,7 +6,7 @@
       <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
@@ -121,7 +121,7 @@ const emptyForm = () => ({
   target_account_number: '',
   beneficiary_name: '',
   reference_number: newReference('IBT'),
-  amount: 0,
+  amount: null,
   transfer_fee: 0,
 })
 const form = ref(emptyForm())

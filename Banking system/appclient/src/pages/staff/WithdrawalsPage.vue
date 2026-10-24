@@ -6,7 +6,7 @@
       <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
@@ -115,7 +115,7 @@ const accountHolderByAccountId = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
-const emptyForm = () => ({ account_id: null, reference_number: newReference('WDR'), amount: 0, withdrawal_channel: '', remarks: '' })
+const emptyForm = () => ({ account_id: null, reference_number: newReference('WDR'), amount: null, withdrawal_channel: '', remarks: '' })
 const form = ref(emptyForm())
 
 const accountHolderName = computed(() => accountHolderByAccountId.value[form.value.account_id] || '')
