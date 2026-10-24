@@ -3,10 +3,10 @@
     <div class="row items-center q-mb-md">
       <div class="text-h5">Fee Types</div>
       <q-space />
-      <q-btn color="primary" icon="add" label="New" @click="openCreate" />
+      <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
@@ -50,10 +50,12 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
+import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
 import { required, nonNegative } from '@/utils/validation'
 
 const $q = useQuasar()
+const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },

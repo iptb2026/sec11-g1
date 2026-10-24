@@ -3,10 +3,10 @@
     <div class="row items-center q-mb-md">
       <div class="text-h5">Transfers</div>
       <q-space />
-      <q-btn color="primary" icon="add" label="New" @click="openCreate" />
+      <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
@@ -35,6 +35,7 @@
               emit-value
               map-options
               :options="accountOptions"
+              :readonly="!!editingId"
             >
               <template v-slot:option="scope">
                 <q-item v-bind="scope.itemProps">
@@ -52,6 +53,7 @@
               emit-value
               map-options
               :options="accountOptions"
+              :readonly="!!editingId"
             >
               <template v-slot:option="scope">
                 <q-item v-bind="scope.itemProps">
@@ -63,7 +65,10 @@
               </template>
             </q-select>
             <q-input v-model="form.transfer_reference" :rules="[required]" lazy-rules label="Transfer Reference" filled />
-            <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled />
+            <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled
+              :readonly="!!editingId"
+              :hint="editingId ? 'Account and amount cannot change. Delete it (which reverses it) and record a new one instead.' : ''"
+            />
             <q-select
               v-model="form.transfer_type"
               label="Transfer Type"
@@ -88,10 +93,13 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
+import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
 import { required, positiveAmount } from '@/utils/validation'
+import { newReference } from '@/utils/reference'
 
 const $q = useQuasar()
+const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
@@ -112,7 +120,7 @@ const editingId = ref(null)
 const emptyForm = () => ({
   source_account_id: null,
   destination_account_id: null,
-  transfer_reference: '',
+  transfer_reference: newReference('TRF'),
   amount: 0,
   transfer_type: 'INTERNAL',
   remarks: '',
@@ -186,7 +194,7 @@ async function save () {
 function removeRow (row) {
   $q.dialog({
     title: 'Confirm Delete',
-    message: `Delete transfer "${row.transfer_reference}"?`,
+    message: `Delete transfer "${row.transfer_reference}"? The amount moves back to the source account.`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {

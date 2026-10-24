@@ -147,6 +147,11 @@ const navGroups = computed(() => {
   if (auth.isAdmin) groups.push({ title: 'Administration', links: ADMIN_LINKS })
   if (auth.isAdmin || auth.isStaff) groups.push({ title: 'Banking Operations', links: OPERATIONS_LINKS })
   if (auth.isCustomer) groups.push({ title: 'My Banking', links: CUSTOMER_LINKS })
+  // Same pages as an admin, but the pages hide New/Edit/Delete for auditors.
+  if (auth.isAuditor) {
+    groups.push({ title: 'Administration (read-only)', links: ADMIN_LINKS })
+    groups.push({ title: 'Banking Operations (read-only)', links: OPERATIONS_LINKS })
+  }
   return groups
 })
 
@@ -168,8 +173,8 @@ const initials = computed(() => {
   return source.map((p) => p[0]).join('').slice(0, 2).toUpperCase()
 })
 
-function onLogout () {
-  auth.logout()
+async function onLogout () {
+  await auth.logout()
   router.push('/login')
 }
 </script>

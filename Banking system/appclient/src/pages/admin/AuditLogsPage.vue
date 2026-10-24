@@ -2,57 +2,16 @@
   <q-page class="q-pa-md">
     <div class="row items-center q-mb-md">
       <div class="text-h5">Audit Logs</div>
-      <q-space />
-      <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
+    <!-- Read-only: the backend logs every create/update/delete by itself. -->
     <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
         </q-input>
       </template>
-      <template #body-cell-actions="props">
-        <q-td :props="props">
-          <q-btn dense flat round icon="delete" aria-label="Delete" color="negative" @click="removeRow(props.row)" />
-        </q-td>
-      </template>
     </q-table>
-
-    <!--
-      old_value / new_value are JSON fields on the backend, omitted here to keep
-      this manual-entry form simple — they're normally filled in automatically
-      when the app itself logs an action, not something typed by hand.
-    -->
-    <q-dialog v-model="showDialog">
-      <q-card style="width: 420px">
-        <q-form @submit="save">
-          <q-card-section>
-            <div class="text-h6">New Audit Log</div>
-          </q-card-section>
-
-          <q-card-section class="q-gutter-md">
-            <q-select
-              v-model="form.user_id"
-              label="User"
-              filled
-              emit-value
-              map-options
-              :options="userOptions"
-            />
-            <q-input v-model="form.action_type" :rules="[required]" lazy-rules label="Action Type" filled hint="e.g. CREATE, UPDATE, DELETE" />
-            <q-input v-model="form.entity_name" :rules="[required]" lazy-rules label="Entity Name" filled hint="e.g. users, accounts" />
-            <q-input v-model.number="form.entity_id" label="Entity ID" type="number" filled />
-            <q-input v-model="form.ip_address" label="IP Address" filled />
-          </q-card-section>
-
-          <q-card-actions align="right">
-            <q-btn flat label="Cancel" v-close-popup />
-            <q-btn color="primary" label="Save" type="submit" />
-          </q-card-actions>
-        </q-form>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
@@ -62,7 +21,6 @@ import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
 import { errorMessage } from '@/utils/notify-error'
-import { required } from '@/utils/validation'
 
 const $q = useQuasar()
 
@@ -74,16 +32,11 @@ const columns = [
   { name: 'entity_id', label: 'Entity ID', field: 'entity_id', align: 'left' },
   { name: 'ip_address', label: 'IP Address', field: 'ip_address', align: 'left' },
   { name: 'action_timestamp', label: 'Timestamp', field: 'action_timestamp', align: 'left' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
 
 const rows = ref([])
 const search = ref('')
-const userOptions = ref([])
 const loading = ref(false)
-const showDialog = ref(false)
-const emptyForm = () => ({ user_id: null, action_type: '', entity_name: '', entity_id: null, ip_address: '' })
-const form = ref(emptyForm())
 
 async function loadRows () {
   loading.value = true
@@ -97,46 +50,5 @@ async function loadRows () {
   }
 }
 
-async function loadUserOptions () {
-  const { data } = await api.get('/users/')
-  userOptions.value = data.map((u) => ({ label: u.username, value: u.id }))
-}
-
-function openCreate () {
-  form.value = emptyForm()
-  showDialog.value = true
-}
-
-async function save () {
-  try {
-    await api.post('/audit-logs/', form.value)
-    showDialog.value = false
-    $q.notify({ type: 'positive', message: 'Audit log created' })
-    loadRows()
-  } catch (err) {
-    $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
-  }
-}
-
-function removeRow (row) {
-  $q.dialog({
-    title: 'Confirm Delete',
-    message: `Delete audit log #${row.id}?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      await api.delete(`/audit-logs/${row.id}`)
-      $q.notify({ type: 'positive', message: 'Audit log deleted' })
-      loadRows()
-    } catch (err) {
-      $q.notify({ type: 'negative', message: errorMessage(err, 'Delete failed') })
-    }
-  })
-}
-
-onMounted(() => {
-  loadRows()
-  loadUserOptions()
-})
+onMounted(loadRows)
 </script>

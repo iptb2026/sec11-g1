@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', {
     isAdmin: (state) => state.roleCode === 'ADMIN',
     isStaff: (state) => state.roleCode === 'STAFF',
     isCustomer: (state) => state.roleCode === 'CUSTOMER',
+    isAuditor: (state) => state.roleCode === 'AUDITOR',
   },
 
   actions: {
@@ -73,7 +74,21 @@ export const useAuthStore = defineStore('auth', {
       this.persist()
     },
 
-    logout () {
+    // Ends the session on the server too (revokes the token in `sessions`),
+    // then forgets it locally. A failed call still logs out of the browser.
+    async logout () {
+      if (this.token) {
+        try {
+          await api.post('/auth/logout')
+        } catch {
+          // Token already expired or revoked: nothing left to end on the server.
+        }
+      }
+      this.clearSession()
+    },
+
+    // Local-only logout, used when the server already rejected the token (401).
+    clearSession () {
       this.token = null
       this.userId = null
       this.username = null

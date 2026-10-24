@@ -3,10 +3,10 @@
     <div class="row items-center q-mb-md">
       <div class="text-h5">Interest Records</div>
       <q-space />
-      <q-btn color="primary" icon="add" label="New" @click="openCreate" />
+      <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
@@ -44,7 +44,9 @@
               map-options
               :options="policyOptions"
             />
-            <q-input v-model.number="form.amount_credited" :rules="[positiveAmount]" lazy-rules label="Amount Credited" type="number" filled />
+            <div class="text-caption text-grey-7">
+              The interest is calculated by the server from the account balance and the policy's rate.
+            </div>
           </q-card-section>
 
           <q-card-actions align="right">
@@ -62,10 +64,12 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
+import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
-import { required, positiveAmount } from '@/utils/validation'
+import { required } from '@/utils/validation'
 
 const $q = useQuasar()
+const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
@@ -84,7 +88,7 @@ const accountOptions = ref([])
 const policyOptions = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
-const emptyForm = () => ({ account_id: null, policy_id: null, amount_credited: 0 })
+const emptyForm = () => ({ account_id: null, policy_id: null })
 const form = ref(emptyForm())
 
 async function loadRows () {
@@ -126,7 +130,7 @@ async function save () {
 function removeRow (row) {
   $q.dialog({
     title: 'Confirm Delete',
-    message: `Delete interest record #${row.id}?`,
+    message: `Delete interest record #${row.id}? The interest is taken back out of the account.`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {

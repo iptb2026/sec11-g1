@@ -76,9 +76,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import { formatDate } from '@/utils/tableColumns'
-import { useAuthStore } from '@/stores/auth-store'
 
-const auth = useAuthStore()
 const rows = ref([])
 const search = ref('')
 const loading = ref(true)
@@ -112,8 +110,10 @@ const totals = computed(() => rows.value.reduce((t, r) => {
 
 onMounted(async () => {
   try {
+    // The backend only returns the customer's own accounts and transactions;
+    // the ids are still needed to tell money in from money out on transfers.
     const { data: allAccounts } = await api.get('/accounts/')
-    const myAccountIds = allAccounts.filter((a) => a.customer_id === auth.userId).map((a) => a.id)
+    const myAccountIds = allAccounts.map((a) => a.id)
     const accountNumberById = Object.fromEntries(allAccounts.map((a) => [a.id, a.account_number]))
 
     const [deposits, withdrawals, transfers, interbank] = await Promise.all([

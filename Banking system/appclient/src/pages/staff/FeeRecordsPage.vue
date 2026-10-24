@@ -3,10 +3,10 @@
     <div class="row items-center q-mb-md">
       <div class="text-h5">Fee Records</div>
       <q-space />
-      <q-btn color="primary" icon="add" label="New" @click="openCreate" />
+      <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
@@ -28,6 +28,7 @@
           </q-card-section>
 
           <q-card-section class="q-gutter-md">
+            <!-- Only remarks can change after a fee is charged (the backend refuses the rest). -->
             <q-select
               v-model="form.account_id" :rules="[required]" lazy-rules
               label="Account"
@@ -35,6 +36,7 @@
               emit-value
               map-options
               :options="accountOptions"
+              :readonly="!!editingId"
             />
             <q-select
               v-model="form.fee_type_id" :rules="[required]" lazy-rules
@@ -43,9 +45,25 @@
               emit-value
               map-options
               :options="feeTypeOptions"
+              :readonly="!!editingId"
             />
-            <q-input v-model="form.transaction_reference" label="Transaction Reference" filled />
-            <q-input v-model.number="form.amount_charged" :rules="[positiveAmount]" lazy-rules label="Amount Charged" type="number" filled />
+            <q-input
+              v-model="form.transaction_reference"
+              label="Transaction Reference"
+              filled
+              :readonly="!!editingId"
+              hint="Reference of the deposit/withdrawal/transfer the fee is for"
+            />
+            <q-input
+              v-if="editingId"
+              :model-value="form.amount_charged"
+              label="Amount Charged"
+              filled
+              readonly
+            />
+            <div v-else class="text-caption text-grey-7">
+              The amount is calculated by the server from the fee type.
+            </div>
             <q-input v-model="form.remarks" label="Remarks" type="textarea" filled />
           </q-card-section>
 
@@ -64,10 +82,12 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
+import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
-import { required, positiveAmount } from '@/utils/validation'
+import { required } from '@/utils/validation'
 
 const $q = useQuasar()
+const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
@@ -90,7 +110,6 @@ const emptyForm = () => ({
   account_id: null,
   fee_type_id: null,
   transaction_reference: '',
-  amount_charged: 0,
   remarks: '',
 })
 const form = ref(emptyForm())
@@ -127,18 +146,20 @@ function openEdit (row) {
     account_id: row.account_id,
     fee_type_id: row.fee_type_id,
     transaction_reference: row.transaction_reference,
-    amount_charged: Number(row.amount_charged),
+    amount_charged: row.amount_charged,
     remarks: row.remarks,
   }
   showDialog.value = true
 }
 
 async function save () {
+  // amount_charged is only shown, never sent: the server calculates it.
+  const { amount_charged, ...payload } = form.value
   try {
     if (editingId.value) {
-      await api.put(`/fee-records/${editingId.value}`, form.value)
+      await api.put(`/fee-records/${editingId.value}`, payload)
     } else {
-      await api.post('/fee-records/', form.value)
+      await api.post('/fee-records/', payload)
     }
     showDialog.value = false
     $q.notify({ type: 'positive', message: 'Fee record saved' })
@@ -151,7 +172,7 @@ async function save () {
 function removeRow (row) {
   $q.dialog({
     title: 'Confirm Delete',
-    message: `Delete fee record #${row.id}?`,
+    message: `Delete fee record #${row.id}? The fee is refunded to the account.`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {

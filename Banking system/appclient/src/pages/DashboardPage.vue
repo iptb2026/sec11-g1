@@ -169,13 +169,13 @@ async function loadStaffCards () {
 
 async function loadCustomer () {
   const { data } = await api.get('/accounts/')
-  myAccounts.value = data.filter((a) => a.customer_id === auth.userId)
+  myAccounts.value = data // the backend only returns the customer's own accounts
 }
 
 async function loadCards () {
   try {
     if (auth.isAdmin) await loadAdminCards()
-    else if (auth.isStaff) await loadStaffCards()
+    else if (auth.isStaff || auth.isAuditor) await loadStaffCards()
     else if (auth.isCustomer) await loadCustomer()
   } finally {
     loading.value = false

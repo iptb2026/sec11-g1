@@ -3,10 +3,10 @@
     <div class="row items-center q-mb-md">
       <div class="text-h5">Interbank Transfers</div>
       <q-space />
-      <q-btn color="primary" icon="add" label="New" @click="openCreate" />
+      <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
@@ -28,7 +28,13 @@
             aria-label="Mark transfer as failed"
             @click="markStatus(props.row, 'FAILED')"
           />
-          <q-btn dense flat round icon="edit" aria-label="Edit" color="primary" @click="openEdit(props.row)" />
+          <q-btn
+            v-if="props.row.status === 'SUCCESS'"
+            dense flat round icon="undo" color="warning"
+            title="Mark REVERSED (refunds amount + fee)"
+            aria-label="Mark transfer as reversed"
+            @click="confirmReverse(props.row)"
+          />
           <q-btn dense flat round icon="delete" aria-label="Delete" color="negative" @click="removeRow(props.row)" />
         </q-td>
       </template>
@@ -38,7 +44,7 @@
       <q-card style="width: 460px">
         <q-form @submit="save">
           <q-card-section>
-            <div class="text-h6">{{ editingId ? 'Edit Interbank Transfer' : 'New Interbank Transfer' }}</div>
+            <div class="text-h6">New Interbank Transfer</div>
           </q-card-section>
 
           <q-card-section class="q-gutter-md">
@@ -80,10 +86,13 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
+import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
 import { required, positiveAmount, nonNegative } from '@/utils/validation'
+import { newReference } from '@/utils/reference'
 
 const $q = useQuasar()
+const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
@@ -102,13 +111,12 @@ const accountOptions = ref([])
 const bankOptions = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
-const editingId = ref(null)
 const emptyForm = () => ({
   source_account_id: null,
   target_bank_id: null,
   target_account_number: '',
   beneficiary_name: '',
-  reference_number: '',
+  reference_number: newReference('IBT'),
   amount: 0,
   transfer_fee: 0,
 })
@@ -135,32 +143,15 @@ async function loadOptions () {
 }
 
 function openCreate () {
-  editingId.value = null
   form.value = emptyForm()
   showDialog.value = true
 }
 
-function openEdit (row) {
-  editingId.value = row.id
-  form.value = {
-    source_account_id: row.source_account_id,
-    target_bank_id: row.target_bank_id,
-    target_account_number: row.target_account_number,
-    beneficiary_name: row.beneficiary_name,
-    reference_number: row.reference_number,
-    amount: Number(row.amount),
-    transfer_fee: Number(row.transfer_fee),
-  }
-  showDialog.value = true
-}
-
+// A sent transfer can't be edited (the backend has no PUT for it); its
+// status is changed with the buttons in the table instead.
 async function save () {
   try {
-    if (editingId.value) {
-      await api.put(`/interbank-transfers/${editingId.value}`, form.value)
-    } else {
-      await api.post('/interbank-transfers/', form.value)
-    }
+    await api.post('/interbank-transfers/', form.value)
     showDialog.value = false
     $q.notify({ type: 'positive', message: 'Interbank transfer saved' })
     loadRows()
@@ -179,10 +170,22 @@ async function markStatus (row, status) {
   }
 }
 
+function confirmReverse (row) {
+  $q.dialog({
+    title: 'Reverse Transfer',
+    message: `Mark "${row.reference_number}" as REVERSED? The amount and fee go back to the source account. This can't be undone.`,
+    cancel: true,
+    persistent: true,
+  }).onOk(() => markStatus(row, 'REVERSED'))
+}
+
 function removeRow (row) {
+  const refundNote = ['FAILED', 'REVERSED'].includes(row.status)
+    ? ''
+    : ' The amount and fee go back to the source account.'
   $q.dialog({
     title: 'Confirm Delete',
-    message: `Delete interbank transfer "${row.reference_number}"?`,
+    message: `Delete interbank transfer "${row.reference_number}"?${refundNote}`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {

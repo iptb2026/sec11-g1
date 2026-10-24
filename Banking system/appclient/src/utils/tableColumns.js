@@ -38,10 +38,16 @@ export function formatDate (val) {
 // array for the same input keeps q-table stable (a new array each render made
 // tables with a custom body slot repeat one row's data).
 const cache = new WeakMap()
+const readOnlyCache = new WeakMap()
 
-export function tableColumns (columns) {
-  if (!cache.has(columns)) cache.set(columns, buildColumns(columns))
-  return cache.get(columns)
+// withActions = false drops the "actions" column (read-only users, e.g. AUDITOR).
+export function tableColumns (columns, withActions = true) {
+  const store = withActions ? cache : readOnlyCache
+  if (!store.has(columns)) {
+    const visible = withActions ? columns : columns.filter((c) => c.name !== 'actions')
+    store.set(columns, buildColumns(visible))
+  }
+  return store.get(columns)
 }
 
 function buildColumns (columns) {

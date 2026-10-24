@@ -3,12 +3,12 @@
     <div class="row items-center q-mb-md">
       <div class="text-h5">Accounts</div>
       <q-space />
-      <q-btn color="primary" icon="add" label="New" @click="openCreate" />
+      <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
     <q-table :filter="search"
       :rows="groupedRows"
-      :columns="tableColumns(columns)"
+      :columns="tableColumns(columns, canWrite)"
       :row-key="rowKey"
       :loading="loading"
       flat
@@ -93,10 +93,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
+import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
 import { required } from '@/utils/validation'
 
 const $q = useQuasar()
+const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
