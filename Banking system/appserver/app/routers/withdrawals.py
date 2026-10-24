@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
 from app.core.money import credit, current_limit, debit, ensure_active, ensure_funds, ensure_minimum_balance, lock_account, reject_money_edits
+from app.core.references import resolve_reference
 from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
@@ -22,10 +23,6 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
     # silently lost (a "lost update").
     account = lock_account(db, withdrawal.account_id)
 
-    existing = db.query(Withdrawal).filter(Withdrawal.reference_number == withdrawal.reference_number).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="reference_number already exists")
-
     ensure_active(account, "withdraw")
     ensure_funds(account, withdrawal.amount)
     ensure_minimum_balance(db, account, withdrawal.amount)
@@ -39,6 +36,7 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
 
     # The date and who approved it come from the server, never the client.
     now = utc_now()
+    withdrawal.reference_number = resolve_reference(db, Withdrawal.reference_number, withdrawal.reference_number, "WD", "reference_number", now)
     new_withdrawal = Withdrawal(**withdrawal.model_dump(), transaction_date=now, approved_by_user_id=current_user.id)
     db.add(new_withdrawal)
 
@@ -76,6 +74,8 @@ def update_withdrawal(withdrawal_id: int, data: WithdrawalCreate, db: Session = 
     if not withdrawal:
         raise HTTPException(status_code=404, detail="Withdrawal not found")
 
+    if not (data.reference_number or "").strip():
+        data.reference_number = withdrawal.reference_number  # blank keeps the current one
     fields = data.model_dump()
     reject_money_edits(withdrawal, fields, ("account_id", "amount"))
 

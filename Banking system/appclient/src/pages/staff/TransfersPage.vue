@@ -64,7 +64,7 @@
                 </q-item>
               </template>
             </q-select>
-            <q-input v-model="form.transfer_reference" :rules="[required]" lazy-rules label="Transfer Reference" filled />
+            <q-input v-model="form.transfer_reference" label="Transfer Reference" filled />
             <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled
               :readonly="!!editingId"
               :hint="editingId ? 'Account and amount cannot change. Delete it (which reverses it) and record a new one instead.' : ''"
@@ -96,7 +96,6 @@ import api from '@/services/api'
 import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
 import { required, positiveAmount } from '@/utils/validation'
-import { newReference } from '@/utils/reference'
 
 const $q = useQuasar()
 const canWrite = useCanWrite()
@@ -124,7 +123,7 @@ const editingId = ref(null)
 const emptyForm = () => ({
   source_account_id: null,
   destination_account_id: null,
-  transfer_reference: newReference('TRF'),
+  transfer_reference: '',
   amount: null,
   transfer_type: 'INTERNAL',
   remarks: '',
@@ -186,13 +185,14 @@ function openEdit (row) {
 
 async function save () {
   try {
+    let saved
     if (editingId.value) {
-      await api.put(`/transfers/${editingId.value}`, form.value)
+      ({ data: saved } = await api.put(`/transfers/${editingId.value}`, form.value))
     } else {
-      await api.post('/transfers/', form.value)
+      ({ data: saved } = await api.post('/transfers/', form.value))
     }
     showDialog.value = false
-    $q.notify({ type: 'positive', message: 'Transfer saved' })
+    $q.notify({ type: 'positive', message: `Transfer ${saved.transfer_reference} saved` })
     loadRows()
   } catch (err) {
     $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })

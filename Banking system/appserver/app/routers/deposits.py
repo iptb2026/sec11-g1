@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
 from app.core.money import credit, debit, ensure_active, ensure_funds, lock_account, reject_money_edits
+from app.core.references import resolve_reference
 from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
@@ -21,15 +22,12 @@ def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db), curren
     # of reading a stale balance and silently overwriting this change.
     account = lock_account(db, deposit.account_id)
 
-    existing = db.query(Deposit).filter(Deposit.reference_number == deposit.reference_number).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="reference_number already exists")
-
     # FROZEN and CLOSED accounts cannot receive deposits.
     ensure_active(account, "receive deposits")
 
     # The date and who recorded it come from the server, never the client.
     now = utc_now()
+    deposit.reference_number = resolve_reference(db, Deposit.reference_number, deposit.reference_number, "DP", "reference_number", now)
     new_deposit = Deposit(**deposit.model_dump(), transaction_date=now, deposited_by_user_id=current_user.id)
     db.add(new_deposit)
 
@@ -70,6 +68,8 @@ def update_deposit(deposit_id: int, data: DepositCreate, db: Session = Depends(g
     if not deposit:
         raise HTTPException(status_code=404, detail="Deposit not found")
 
+    if not (data.reference_number or "").strip():
+        data.reference_number = deposit.reference_number  # blank keeps the current one
     fields = data.model_dump()
     reject_money_edits(deposit, fields, ("account_id", "amount"))
 

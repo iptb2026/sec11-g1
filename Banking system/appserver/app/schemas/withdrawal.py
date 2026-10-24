@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 
 class WithdrawalCreate(BaseModel):
     account_id: int
-    reference_number: str
+    # Leave blank to let the server generate one (see app/core/references.py).
+    reference_number: Optional[str] = None
     amount: Decimal = Field(gt=0)
     withdrawal_channel: Literal["ATM", "ONLINE", "BRANCH", "INTERBANK"]
     remarks: Optional[str] = None

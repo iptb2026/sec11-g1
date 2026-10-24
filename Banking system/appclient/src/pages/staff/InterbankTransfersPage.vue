@@ -66,7 +66,7 @@
             />
             <q-input v-model="form.target_account_number" :rules="[required]" lazy-rules label="Target Account Number" filled />
             <q-input v-model="form.beneficiary_name" label="Beneficiary Name" filled />
-            <q-input v-model="form.reference_number" :rules="[required]" lazy-rules label="Reference Number" filled />
+            <q-input v-model="form.reference_number" label="Reference Number" filled />
             <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled />
             <q-input v-model.number="form.transfer_fee" :rules="[nonNegative]" lazy-rules label="Transfer Fee" type="number" filled />
           </q-card-section>
@@ -89,7 +89,6 @@ import api from '@/services/api'
 import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
 import { required, positiveAmount, nonNegative } from '@/utils/validation'
-import { newReference } from '@/utils/reference'
 
 const $q = useQuasar()
 const canWrite = useCanWrite()
@@ -120,7 +119,7 @@ const emptyForm = () => ({
   target_bank_id: null,
   target_account_number: '',
   beneficiary_name: '',
-  reference_number: newReference('IBT'),
+  reference_number: '',
   amount: null,
   transfer_fee: 0,
 })
@@ -169,9 +168,9 @@ function openCreate () {
 // status is changed with the buttons in the table instead.
 async function save () {
   try {
-    await api.post('/interbank-transfers/', form.value)
+    const { data } = await api.post('/interbank-transfers/', form.value)
     showDialog.value = false
-    $q.notify({ type: 'positive', message: 'Interbank transfer saved' })
+    $q.notify({ type: 'positive', message: `Interbank transfer ${data.reference_number} saved` })
     loadRows()
   } catch (err) {
     $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })

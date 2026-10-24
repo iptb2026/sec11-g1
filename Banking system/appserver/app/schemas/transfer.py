@@ -9,7 +9,8 @@ from pydantic import BaseModel, Field
 class TransferCreate(BaseModel):
     source_account_id: int
     destination_account_id: int
-    transfer_reference: str
+    # Leave blank to let the server generate one (see app/core/references.py).
+    transfer_reference: Optional[str] = None
     amount: Decimal = Field(gt=0)
     transfer_type: Literal["INTERNAL", "SCHEDULED"] = "INTERNAL"
     remarks: Optional[str] = None

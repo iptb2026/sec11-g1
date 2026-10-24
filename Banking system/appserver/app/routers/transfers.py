@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
 from app.core.money import credit, debit, ensure_active, ensure_funds, ensure_minimum_balance, reject_money_edits
+from app.core.references import resolve_reference
 from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
@@ -43,10 +44,6 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
     if not destination:
         raise HTTPException(status_code=400, detail="destination_account_id does not exist")
 
-    existing = db.query(Transfer).filter(Transfer.transfer_reference == transfer.transfer_reference).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="transfer_reference already exists")
-
     # Both sides must be ACTIVE: money can't leave a frozen/closed account
     # or be sent into one.
     ensure_active(source, "send transfers")
@@ -55,6 +52,7 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
     ensure_minimum_balance(db, source, transfer.amount)
 
     now = utc_now()
+    transfer.transfer_reference = resolve_reference(db, Transfer.transfer_reference, transfer.transfer_reference, "TR", "transfer_reference", now)
     new_transfer = Transfer(**transfer.model_dump(), status="SUCCESS", completed_at=now)
     db.add(new_transfer)
 
@@ -93,6 +91,8 @@ def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depend
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
 
+    if not (data.transfer_reference or "").strip():
+        data.transfer_reference = transfer.transfer_reference  # blank keeps the current one
     fields = data.model_dump()
     reject_money_edits(transfer, fields, ("source_account_id", "destination_account_id", "amount"))
 
