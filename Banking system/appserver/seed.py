@@ -47,6 +47,8 @@ USERS = [
 # (type_code, type_name, minimum_balance, opening_deposit, annual_interest_rate, daily_withdrawal_limit)
 ACCOUNT_TYPES = [
     ("SAVINGS", "Regular Savings", 500, 1000, 0.25, 50000),
+    # PAYROLL: same values as in catarig, so a fresh database has every type catarig has.
+    ("PAYROLL", "Payroll Account", 0, 0, 0.00, 30000),
     ("CHECKING", "Checking Account", 2000, 5000, 0.00, 100000),
 ]
 

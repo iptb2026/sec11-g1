@@ -6,7 +6,8 @@ The team's MySQL (8.0) runs inside the **`ipt2-g1-home`** Docker container, whic
 
 | File | What it is |
 |---|---|
-| `verify.sql` | Health check: tables, foreign keys, row counts, plain-text passwords, demo users per role, balance reconciliation, ledger vs balance, balance floor |
+| `verify.sql` | Health check: tables, foreign keys, row counts, plain-text passwords, demo users per role, balance reconciliation, ledger vs balance, balance floor, missing withdrawal limits |
+| `align_account_types.sql` | Gives SAVINGS seed.py's minimum balance, interest rate and daily limit, and every account its type's daily withdrawal limit (section 1) |
 | `account_balance_audit.sql` | Creates the `account_balance_audit` view: each account's balance next to what its transactions say it should be |
 | `reset_transactions.sql` | Clears every transaction and puts accounts back at their opening deposit, for a clean demo (section 2) |
 | `../appserver/backfill_ledger.py` | Writes the ledger rows missing for transactions made before the ledger was automatic (PR #19) |
@@ -48,6 +49,13 @@ Then, in MySQL (from the `database` folder), create the audit view once:
 ```sql
 USE catarig;
 SOURCE account_balance_audit.sql;
+```
+
+**Account types made before `seed.py`** (like catarig's SAVINGS and PAYROLL, created by hand on 2026-08-13) keep whatever values they were given, because `seed.py` never overwrites an existing type. Run `align_account_types.sql` once (after a backup) to give SAVINGS the seed's minimum balance (500), interest rate (0.25) and daily limit (50,000), and to give every account its type's daily withdrawal limit, like the API does for new accounts. It does not change `opening_deposit`: catarig's existing accounts were opened with 0, and `account_balance_audit` uses the type's current `opening_deposit` for every account. `verify.sql` section 9 shows any account still missing its limit.
+
+```sql
+USE catarig;
+SOURCE align_account_types.sql;
 ```
 
 ### Demo logins (from `seed.py`, password `password123`)
