@@ -59,7 +59,7 @@
         <div class="bank-brand__mark"><q-icon name="account_balance" size="22px" /></div>
         <div>
           <div class="bank-brand__name">{{ BANK_NAME }}</div>
-          <div class="bank-brand__tag">Banking System</div>
+          <div class="bank-brand__tag">Bank</div>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth-store'
 
 // The bank's name, shown in the sidebar. Change it here (and in LoginPage.vue).
-const BANK_NAME = 'Mini Bank'
+const BANK_NAME = 'Tipon'
 
 const leftDrawerOpen = ref(false)
 const auth = useAuthStore()
@@ -186,11 +186,9 @@ async function onLogout () {
 
 /* --- Top bar --- */
 .bank-topbar {
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--bank-surface);
   color: var(--bank-text);
-  border-bottom: 1px solid var(--bank-border);
+  border-bottom: 1.5px solid var(--bank-border);
 }
 
 .bank-topbar__inner {
@@ -203,8 +201,9 @@ async function onLogout () {
 }
 
 .bank-topbar__page {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-family: var(--tipon-display);
+  font-size: 1.1rem;
+  font-weight: 800;
 }
 
 .bank-secure {
@@ -214,7 +213,7 @@ async function onLogout () {
   padding: 6px 12px;
   margin-right: 12px;
   border-radius: 999px;
-  background: #ECFDF5;
+  background: var(--tipon-sea-tint);
   color: var(--bank-credit);
   font-size: 0.8rem;
   font-weight: 600;
@@ -226,8 +225,8 @@ async function onLogout () {
 }
 
 .bank-user__avatar {
-  background: linear-gradient(135deg, var(--bank-blue-800), var(--bank-navy-900));
-  color: #fff;
+  background: var(--tipon-sea);
+  color: #F7FAF8;
   font-weight: 600;
   font-size: 0.85rem;
 }
@@ -251,8 +250,8 @@ async function onLogout () {
 
 /* --- Sidebar --- */
 .bank-layout :deep(.q-drawer) {
-  background: linear-gradient(180deg, var(--bank-navy-900) 0%, var(--bank-navy-950) 100%);
-  color: #CBD5E1;
+  background: var(--tipon-ink);
+  color: #E6EEF0;
   display: flex;
   flex-direction: column;
 }
@@ -267,7 +266,7 @@ async function onLogout () {
   align-items: center;
   gap: 12px;
   padding: 20px 20px 18px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  border-bottom: 1.5px solid rgba(196, 211, 205, 0.16);
 }
 
 .bank-brand__mark {
@@ -277,20 +276,20 @@ async function onLogout () {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--bank-navy-900);
-  background: linear-gradient(135deg, var(--bank-gold-light), var(--bank-gold));
-  box-shadow: 0 6px 18px rgba(202, 138, 4, 0.35);
+  color: var(--tipon-ink);
+  background: var(--tipon-mango);
 }
 
 .bank-brand__name {
-  color: #fff;
-  font-weight: 700;
-  font-size: 1.05rem;
+  color: #F7FAF8;
+  font-family: var(--tipon-display);
+  font-weight: 800;
+  font-size: 1.3rem;
   letter-spacing: -0.01em;
 }
 
 .bank-brand__tag {
-  color: #94A3B8;
+  color: #93A8AE;
   font-size: 0.75rem;
 }
 
@@ -303,7 +302,7 @@ async function onLogout () {
 }
 
 .bank-nav__header {
-  color: #64748B;
+  color: #93A8AE;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -315,7 +314,7 @@ async function onLogout () {
   border-radius: 10px;
   min-height: 42px;
   margin-bottom: 2px;
-  color: #CBD5E1;
+  color: #E6EEF0;
   font-weight: 500;
   font-size: 0.9rem;
   transition: background-color 0.18s ease, color 0.18s ease;
@@ -323,17 +322,17 @@ async function onLogout () {
 
 .bank-nav__item :deep(.q-item__section--avatar) {
   min-width: 36px;
-  color: #94A3B8;
+  color: #93A8AE;
 }
 
 .bank-nav__item:hover {
-  background: rgba(148, 163, 184, 0.12);
-  color: #fff;
+  background: rgba(93, 184, 166, 0.12);
+  color: #F7FAF8;
 }
 
 .bank-nav__item.q-router-link--active {
-  background: rgba(37, 99, 235, 0.22);
-  color: #fff;
+  background: rgba(93, 184, 166, 0.2);
+  color: #F7FAF8;
   box-shadow: inset 3px 0 0 var(--bank-gold-light);
 }
 
@@ -347,7 +346,7 @@ async function onLogout () {
   gap: 8px;
   padding: 14px 20px;
   font-size: 0.75rem;
-  color: #94A3B8;
-  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  color: #93A8AE;
+  border-top: 1px solid rgba(196, 211, 205, 0.16);
 }
 </style>

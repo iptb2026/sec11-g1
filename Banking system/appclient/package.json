@@ -2,7 +2,7 @@
   "name": "banking-frontend",
   "version": "0.0.1",
   "description": "A Quasar Project",
-  "productName": "Quasar App",
+  "productName": "Tipon Bank",
   "author": "drguiritan <drguiritan@urios.edu.ph>",
   "type": "module",
   "private": true,
@@ -12,7 +12,8 @@
     "postinstall": "quasar prepare --silent"
   },
   "dependencies": {
-    "@fontsource/ibm-plex-sans": "^5.2.8",
+    "@fontsource/bricolage-grotesque": "^5.3.0",
+    "@fontsource/figtree": "^5.3.0",
     "@quasar/extras": "^2.0.0",
     "axios": "^1.19.0",
     "pinia": "^4.0.2",

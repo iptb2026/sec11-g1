@@ -89,18 +89,18 @@ onMounted(loadAccounts)
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+  box-shadow: none;
 }
 
 .acc-card__muted {
-  color: #CBD5E1;
+  color: #C4D3CD;
 }
 
 .acc-card__chip {
   width: 46px;
   height: 34px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #FDE68A, var(--bank-gold));
+  background: var(--tipon-mango);
 }
 
 .acc-card__number {
