@@ -6,10 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
 from app.core.money import credit, debit, lock_account
+from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.interest_policy import InterestPolicy
 from app.models.interest_record import InterestRecord
+from app.models.user import User
 from app.schemas.interest_record import InterestRecordCreate, InterestRecordOut
 
 router = APIRouter(prefix="/interest-records", tags=["Layer 5 - Interest Records"])
@@ -67,14 +69,19 @@ def create_interest_record(record: InterestRecordCreate, db: Session = Depends(g
 
 
 @router.get("/", response_model=list[InterestRecordOut])
-def list_interest_records(db: Session = Depends(get_db)):
-    return db.query(InterestRecord).all()
+def list_interest_records(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    query = db.query(InterestRecord)
+    ids = own_account_ids(current_user, db)
+    if ids is not None:  # customers only see interest on their own accounts
+        query = query.filter(InterestRecord.account_id.in_(ids))
+    return query.all()
 
 
 @router.get("/{record_id}", response_model=InterestRecordOut)
-def get_interest_record(record_id: int, db: Session = Depends(get_db)):
+def get_interest_record(record_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     record = db.query(InterestRecord).filter(InterestRecord.id == record_id).first()
-    if not record:
+    ids = own_account_ids(current_user, db)
+    if not record or (ids is not None and not record.account_id in ids):
         raise HTTPException(status_code=404, detail="Interest record not found")
     return record
 

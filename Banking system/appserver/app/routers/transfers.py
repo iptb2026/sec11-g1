@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
-from app.core.money import credit, debit, ensure_active, ensure_funds, reject_money_edits
+from app.core.money import credit, debit, ensure_active, ensure_funds, ensure_minimum_balance, reject_money_edits
 from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
@@ -52,6 +52,7 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
     ensure_active(source, "send transfers")
     ensure_active(destination, "receive transfers")
     ensure_funds(source, transfer.amount)
+    ensure_minimum_balance(db, source, transfer.amount)
 
     now = utc_now()
     new_transfer = Transfer(**transfer.model_dump(), status="SUCCESS", completed_at=now)

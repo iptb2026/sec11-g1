@@ -15,6 +15,7 @@ from app.models.account import Account
 from app.models.account_type import AccountType
 from app.models.ledger_entry import LedgerEntry
 from app.models.user import User
+from app.models.withdrawal_limit import WithdrawalLimit
 from app.schemas.account import AccountCreate, AccountUpdate, AccountOut
 
 router = APIRouter(prefix="/accounts", tags=["Layer 3 - Accounts"])
@@ -76,6 +77,14 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     if starting_balance:
         # The opening deposit is the account's first ledger entry.
         credit(db, new_account, starting_balance, opening_reference(new_account), "DEPOSIT")
+    # The account type's daily withdrawal limit applies from day one (as in seed.py).
+    # Staff can still change it on the Withdrawal Limits page.
+    if account_type.daily_withdrawal_limit:
+        db.add(WithdrawalLimit(
+            account_id=new_account.id,
+            daily_limit_amount=account_type.daily_withdrawal_limit,
+            last_reset_date=utc_now().date(),
+        ))
     db.commit()
     db.refresh(new_account)
     return new_account
@@ -163,6 +172,13 @@ def delete_account(account_id: int, db: Session = Depends(get_db)):
     if len(entries) == 1 and entries[0].transaction_reference == opening_reference(account):
         db.delete(entries[0])
         db.flush()  # the ledger row must be gone before the account row
+
+    # Its withdrawal limit row only describes the account, so it goes too.
+    # If anything else still references the account, the commit below fails
+    # and rolls this back as well.
+    for limit in db.query(WithdrawalLimit).filter(WithdrawalLimit.account_id == account.id).all():
+        db.delete(limit)  # one by one, so the audit log records it
+    db.flush()
 
     db.delete(account)
     commit_or_409(db, "Cannot delete this account — related transactions or records still reference it")

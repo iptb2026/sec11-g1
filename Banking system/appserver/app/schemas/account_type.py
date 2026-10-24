@@ -2,16 +2,16 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AccountTypeCreate(BaseModel):
     type_code: str
     type_name: str
-    minimum_balance: Decimal = Decimal("0.00")
-    opening_deposit: Decimal = Decimal("0.00")
-    annual_interest_rate: Decimal = Decimal("0.00")
-    daily_withdrawal_limit: Decimal = Decimal("0.00")
+    minimum_balance: Decimal = Field(default=Decimal("0.00"), ge=0)
+    opening_deposit: Decimal = Field(default=Decimal("0.00"), ge=0)
+    annual_interest_rate: Decimal = Field(default=Decimal("0.00"), ge=0)
+    daily_withdrawal_limit: Decimal = Field(default=Decimal("0.00"), ge=0)
 
 
 class AccountTypeOut(BaseModel):

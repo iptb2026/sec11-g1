@@ -106,6 +106,9 @@ function typeLabel (type) {
     'TRANSFER OUT': 'Transfer sent',
     'TRANSFER IN': 'Transfer received',
     INTERBANK: 'Interbank transfer',
+    OPENING: 'Opening deposit',
+    FEE: 'Bank fee',
+    INTEREST: 'Interest earned',
   }[type] || type
 }
 
@@ -122,11 +125,14 @@ onMounted(async () => {
     const myAccountIds = allAccounts.map((a) => a.id)
     const accountNumberById = Object.fromEntries(allAccounts.map((a) => [a.id, a.account_number]))
 
-    const [deposits, withdrawals, transfers, interbank] = await Promise.all([
+    const [deposits, withdrawals, transfers, interbank, fees, interest, ledger] = await Promise.all([
       api.get('/deposits/'),
       api.get('/withdrawals/'),
       api.get('/transfers/'),
       api.get('/interbank-transfers/'),
+      api.get('/fee-records/'),
+      api.get('/interest-records/'),
+      api.get('/ledger-entries/'),
     ])
 
     const combined = []
@@ -196,6 +202,52 @@ onMounted(async () => {
           reference: i.reference_number,
           amount: Number(i.amount) + Number(i.transfer_fee),
           direction: 'debit',
+        })
+      }
+    }
+
+    // Fees and interest also change the balance, so they belong here too
+    // (otherwise "money in - money out" doesn't match the balance).
+    for (const f of fees.data) {
+      if (myAccountIds.includes(f.account_id)) {
+        combined.push({
+          key: `fee-${f.id}`,
+          date: f.charged_at,
+          type: 'FEE',
+          account_number: accountNumberById[f.account_id],
+          reference: f.transaction_reference || `FEE-${f.id}`,
+          amount: f.amount_charged,
+          direction: 'debit',
+        })
+      }
+    }
+
+    // An account type's opening deposit has no deposits row; it is only in
+    // the ledger, as the account's first entry (reference OPEN-<account number>).
+    for (const l of ledger.data) {
+      if (myAccountIds.includes(l.account_id) && l.transaction_reference === `OPEN-${accountNumberById[l.account_id]}`) {
+        combined.push({
+          key: `open-${l.id}`,
+          date: l.transaction_date,
+          type: 'OPENING',
+          account_number: accountNumberById[l.account_id],
+          reference: l.transaction_reference,
+          amount: l.credit_amount,
+          direction: 'credit',
+        })
+      }
+    }
+
+    for (const r of interest.data) {
+      if (myAccountIds.includes(r.account_id)) {
+        combined.push({
+          key: `int-${r.id}`,
+          date: r.credited_at,
+          type: 'INTEREST',
+          account_number: accountNumberById[r.account_id],
+          reference: `INT-${r.id}`,
+          amount: r.amount_credited,
+          direction: 'credit',
         })
       }
     }

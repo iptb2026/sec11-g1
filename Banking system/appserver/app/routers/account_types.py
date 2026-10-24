@@ -42,10 +42,16 @@ def update_account_type(account_type_id: int, data: AccountTypeCreate, db: Sessi
     if not account_type:
         raise HTTPException(status_code=404, detail="Account type not found")
 
+    duplicate = db.query(AccountType).filter(
+        AccountType.type_code == data.type_code, AccountType.id != account_type_id
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=400, detail="type_code already exists")
+
     for field, value in data.model_dump().items():
         setattr(account_type, field, value)
 
-    db.commit()
+    commit_or_409(db, "type_code already exists")
     db.refresh(account_type)
     return account_type
 

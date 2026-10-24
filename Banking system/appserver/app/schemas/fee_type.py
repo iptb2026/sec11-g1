@@ -3,15 +3,15 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FeeTypeCreate(BaseModel):
     fee_code: str
     fee_name: str
     fee_description: Optional[str] = None
-    fixed_amount: Decimal = Decimal("0.00")
-    percentage_rate: Decimal = Decimal("0.00")
+    fixed_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
+    percentage_rate: Decimal = Field(default=Decimal("0.00"), ge=0, le=100)
 
 
 class FeeTypeOut(BaseModel):
