@@ -1,6 +1,6 @@
 # Database Admin Runbook — Mini Banking System
 
-Everything the Database Admins need for the team database, in one folder. Connection settings come from `appserver/.env` (MySQL, schema `catarig`, `127.0.0.1:3306`, user `admin`), read by `appserver/app/core/config.py`. Copy `appserver/.env.example` to `appserver/.env` and fill in the DB password and a `SECRET_KEY`; `.env` is git-ignored, so secrets never go into git. If MySQL runs in Docker on a different port, change `DB_PORT` there; the API, Alembic and `seed.py` all read the same file.
+Everything the Database Admins need for the team database, in one folder. Connection settings come from `appserver/.env` (MySQL, schema `catarig`, `127.0.0.1:3306`, user `admin`), read by `appserver/app/core/config.py`. Run `python make_env.py` in `appserver` to create `appserver/.env` (it asks for the DB password and generates a `SECRET_KEY`), or copy `appserver/.env.example` to `appserver/.env` and fill them in by hand; `.env` is git-ignored, so secrets never go into git. If MySQL runs in Docker on a different port, change `DB_PORT` there; the API, Alembic and `seed.py` all read the same file.
 
 The team's MySQL (8.0) runs inside the **`ipt2-g1-home`** Docker container, which does not publish port 3306 to Windows. Run the backend, `alembic` and `seed.py` **inside that container** (where `127.0.0.1:3306` is correct), and pass `-Container ipt2-g1-home` to `backup.ps1`.
 

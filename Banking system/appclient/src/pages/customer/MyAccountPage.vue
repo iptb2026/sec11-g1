@@ -46,9 +46,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import api from '@/services/api'
-import { useAuthStore } from '@/stores/auth-store'
 
-const auth = useAuthStore()
 const accounts = ref([])
 const loading = ref(true)
 
@@ -69,7 +67,7 @@ function formatDate (val) {
 async function loadAccounts () {
   try {
     const { data } = await api.get('/accounts/')
-    accounts.value = data.filter((a) => a.customer_id === auth.userId)
+    accounts.value = data // the backend only returns the customer's own accounts
   } finally {
     loading.value = false
   }

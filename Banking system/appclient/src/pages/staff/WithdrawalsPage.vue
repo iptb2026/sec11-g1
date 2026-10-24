@@ -3,10 +3,10 @@
     <div class="row items-center q-mb-md">
       <div class="text-h5">Withdrawals</div>
       <q-space />
-      <q-btn color="primary" icon="add" label="New" @click="openCreate" />
+      <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>
@@ -35,6 +35,7 @@
               emit-value
               map-options
               :options="accountOptions"
+              :readonly="!!editingId"
             >
               <template v-slot:option="scope">
                 <q-item v-bind="scope.itemProps">
@@ -53,7 +54,10 @@
               readonly
             />
             <q-input v-model="form.reference_number" :rules="[required]" lazy-rules label="Reference Number" filled />
-            <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled />
+            <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled
+              :readonly="!!editingId"
+              :hint="editingId ? 'Account and amount cannot change. Delete it (which reverses it) and record a new one instead.' : ''"
+            />
             <q-select
               v-model="form.withdrawal_channel" :rules="[required]" lazy-rules
               label="Channel"
@@ -83,10 +87,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
+import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
 import { required, positiveAmount } from '@/utils/validation'
+import { newReference } from '@/utils/reference'
 
 const $q = useQuasar()
+const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
@@ -108,7 +115,7 @@ const accountHolderByAccountId = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
-const emptyForm = () => ({ account_id: null, reference_number: '', amount: 0, withdrawal_channel: '', remarks: '' })
+const emptyForm = () => ({ account_id: null, reference_number: newReference('WDR'), amount: 0, withdrawal_channel: '', remarks: '' })
 const form = ref(emptyForm())
 
 const accountHolderName = computed(() => accountHolderByAccountId.value[form.value.account_id] || '')
@@ -196,7 +203,7 @@ async function save () {
 function removeRow (row) {
   $q.dialog({
     title: 'Confirm Delete',
-    message: `Delete withdrawal "${row.reference_number}"?`,
+    message: `Delete withdrawal "${row.reference_number}"? The amount goes back into the account.`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {
