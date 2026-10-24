@@ -74,9 +74,15 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { errorMessage } from '@/utils/notify-error'
 import { formatDate } from '@/utils/tableColumns'
 
+// Same as REFUNDED_STATUSES in the backend's interbank_transfers router.
+const REFUNDED_STATUSES = ['FAILED', 'REVERSED']
+
+const $q = useQuasar()
 const rows = ref([])
 const search = ref('')
 const loading = ref(true)
@@ -179,7 +185,9 @@ onMounted(async () => {
     }
 
     for (const i of interbank.data) {
-      if (myAccountIds.includes(i.source_account_id)) {
+      // FAILED and REVERSED transfers were refunded (amount + fee came back),
+      // so they are not money out.
+      if (myAccountIds.includes(i.source_account_id) && !REFUNDED_STATUSES.includes(i.status)) {
         combined.push({
           key: `ibt-${i.id}`,
           date: i.initiated_at,
@@ -194,6 +202,8 @@ onMounted(async () => {
 
     combined.sort((a, b) => new Date(b.date) - new Date(a.date))
     rows.value = combined
+  } catch (err) {
+    $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load transactions') })
   } finally {
     loading.value = false
   }

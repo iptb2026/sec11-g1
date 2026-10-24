@@ -80,7 +80,8 @@ const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_id', label: 'Account ID', field: 'account_id', align: 'left' },
+  { name: 'account_number', label: 'Account', field: (row) => accountNumberByAccountId.value[row.account_id] || row.account_id, align: 'left' },
+  { name: 'account_name', label: 'Account Name', field: (row) => accountHolderByAccountId.value[row.account_id] || '', align: 'left' },
   { name: 'daily_limit_amount', label: 'Daily Limit', field: 'daily_limit_amount', align: 'right' },
   { name: 'daily_used_amount', label: 'Used Today', field: 'daily_used_amount', align: 'right' },
   { name: 'last_reset_date', label: 'Last Reset', field: 'last_reset_date', align: 'left' },
@@ -91,6 +92,7 @@ const rows = ref([])
 const search = ref('')
 const accountOptions = ref([])
 const accountHolderByAccountId = ref({})
+const accountNumberByAccountId = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
@@ -127,6 +129,7 @@ async function loadOptions () {
     value: a.id,
     holder: nameByUserId[a.customer_id] || '',
   }))
+  accountNumberByAccountId.value = Object.fromEntries(accounts.map((a) => [a.id, a.account_number]))
   accountHolderByAccountId.value = Object.fromEntries(
     accounts.map((a) => [a.id, nameByUserId[a.customer_id] || '']),
   )

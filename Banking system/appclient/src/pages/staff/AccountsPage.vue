@@ -103,8 +103,7 @@ const canWrite = useCanWrite()
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
   { name: 'account_number', label: 'Account #', field: 'account_number', align: 'left' },
-  { name: 'customer_id', label: 'Customer ID', field: 'customer_id', align: 'left' },
-  { name: 'account_type_id', label: 'Type ID', field: 'account_type_id', align: 'left' },
+  { name: 'account_type', label: 'Type', field: (row) => accountTypeNameById.value[row.account_type_id] || row.account_type_id, align: 'left' },
   { name: 'available_balance', label: 'Available Balance', field: 'available_balance', align: 'right' },
   { name: 'ledger_balance', label: 'Ledger Balance', field: 'ledger_balance', align: 'right' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
@@ -116,6 +115,7 @@ const search = ref('')
 const customerOptions = ref([])
 const accountTypeOptions = ref([])
 const customerNameById = ref({})
+const accountTypeNameById = ref({})
 const loading = ref(false)
 
 function rowKey (row) {
@@ -174,6 +174,7 @@ async function loadOptions () {
 
   const { data: types } = await api.get('/account-types/')
   accountTypeOptions.value = types.map((t) => ({ label: `${t.type_code} - ${t.type_name}`, value: t.id }))
+  accountTypeNameById.value = Object.fromEntries(types.map((t) => [t.id, t.type_name]))
 }
 
 async function openCreate () {

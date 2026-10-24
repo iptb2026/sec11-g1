@@ -265,6 +265,86 @@ a:focus-visible,
   border-color: var(--bank-border);
 }
 
+/* Phones: each row becomes a small card with one "LABEL ...... value" line per
+   column, so amounts and buttons never sit off-screen. The labels come from
+   the column headers (data-label, set by boot/table-labels.js). */
+@media (max-width: 599px) {
+  .q-table thead {
+    display: none;
+  }
+
+  .q-table,
+  .q-table tbody,
+  .q-table tbody tr,
+  .q-table tbody td {
+    display: block;
+    width: 100%;
+  }
+
+  .q-table tbody tr {
+    height: auto;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bank-border);
+  }
+
+  .q-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .q-table tbody td,
+  .q-table tbody td:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    height: auto;
+    min-height: 34px;
+    padding: 4px 16px;
+    border: 0;
+    text-align: right;
+    font-size: 0.88rem;
+  }
+
+  .q-table tbody td.bank-cell-id {
+    display: none;
+  }
+
+  /* Quasar uses td:before for the hover shade (and blanks it on hover in a
+     desktop browser); here it holds the label, pushing the value right. */
+  .q-table tbody td[data-label]:not([colspan])::before {
+    content: attr(data-label) !important;
+    position: static;
+    flex: none;
+    margin-right: auto;
+    background: none !important;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bank-muted);
+  }
+
+  .q-table td.bank-cell-date {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  /* Grouping rows (e.g. the customer name on Accounts) span the whole card. */
+  .q-table tbody td[colspan] {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .q-table__top {
+    padding: 12px 16px;
+  }
+
+  .q-table__top .q-input {
+    width: 100%;
+  }
+}
+
 /* Status badges read like pills */
 .q-badge {
   border-radius: 999px;

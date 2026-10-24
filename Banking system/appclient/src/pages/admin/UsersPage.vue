@@ -86,7 +86,7 @@ const columns = [
   { name: 'email', label: 'Email', field: 'email', align: 'left' },
   { name: 'first_name', label: 'First Name', field: 'first_name', align: 'left' },
   { name: 'last_name', label: 'Last Name', field: 'last_name', align: 'left' },
-  { name: 'role_id', label: 'Role ID', field: 'role_id', align: 'left' },
+  { name: 'role', label: 'Role', field: (row) => roleNameById.value[row.role_id] || row.role_id, align: 'left' },
   { name: 'account_status', label: 'Status', field: 'account_status', align: 'left' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
@@ -94,6 +94,7 @@ const columns = [
 const rows = ref([])
 const search = ref('')
 const roleOptions = ref([])
+const roleNameById = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
@@ -126,6 +127,7 @@ async function loadRows () {
 async function loadRoleOptions () {
   const { data } = await api.get('/roles/')
   roleOptions.value = data.map((r) => ({ label: `${r.role_code} - ${r.role_name}`, value: r.id }))
+  roleNameById.value = Object.fromEntries(data.map((r) => [r.id, r.role_name]))
 }
 
 function openCreate () {
