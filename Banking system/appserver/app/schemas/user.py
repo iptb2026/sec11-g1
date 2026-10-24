@@ -2,13 +2,15 @@
 from datetime import date, datetime
 from typing import Optional, Literal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
+
+from app.schemas.email import OptionalEmail
 
 
 class UserCreate(BaseModel):
     username: str
     password: str
-    email: Optional[EmailStr] = None
+    email: OptionalEmail = None
     mobile_number: Optional[str] = None
     first_name: str
     middle_name: Optional[str] = None
