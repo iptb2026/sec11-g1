@@ -96,8 +96,9 @@ const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'source_account_id', label: 'Source Account ID', field: 'source_account_id', align: 'left' },
-  { name: 'target_bank_id', label: 'Target Bank ID', field: 'target_bank_id', align: 'left' },
+  { name: 'source_account_number', label: 'From Account', field: (row) => accountNumberByAccountId.value[row.source_account_id] || row.source_account_id, align: 'left' },
+  { name: 'source_account_name', label: 'From Name', field: (row) => accountHolderByAccountId.value[row.source_account_id] || '', align: 'left' },
+  { name: 'target_bank', label: 'To Bank', field: (row) => bankNameById.value[row.target_bank_id] || row.target_bank_id, align: 'left' },
   { name: 'reference_number', label: 'Reference', field: 'reference_number', align: 'left' },
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
   { name: 'transfer_fee', label: 'Fee', field: 'transfer_fee', align: 'right' },
@@ -109,6 +110,9 @@ const rows = ref([])
 const search = ref('')
 const accountOptions = ref([])
 const bankOptions = ref([])
+const accountNumberByAccountId = ref({})
+const accountHolderByAccountId = ref({})
+const bankNameById = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const emptyForm = () => ({
@@ -135,11 +139,25 @@ async function loadRows () {
 }
 
 async function loadOptions () {
-  const { data: accounts } = await api.get('/accounts/')
-  accountOptions.value = accounts.map((a) => ({ label: a.account_number, value: a.id }))
+  const [{ data: accounts }, { data: users }, { data: banks }] = await Promise.all([
+    api.get('/accounts/'),
+    api.get('/users/'),
+    api.get('/banks/'),
+  ])
 
-  const { data: banks } = await api.get('/banks/')
+  const nameByUserId = {}
+  users.forEach((u) => {
+    nameByUserId[u.id] = `${u.first_name} ${u.last_name}`
+  })
+
+  accountOptions.value = accounts.map((a) => ({ label: a.account_number, value: a.id }))
+  accountNumberByAccountId.value = Object.fromEntries(accounts.map((a) => [a.id, a.account_number]))
+  accountHolderByAccountId.value = Object.fromEntries(
+    accounts.map((a) => [a.id, nameByUserId[a.customer_id] || '']),
+  )
+
   bankOptions.value = banks.map((b) => ({ label: `${b.bank_code} - ${b.bank_name}`, value: b.id }))
+  bankNameById.value = Object.fromEntries(banks.map((b) => [b.id, b.bank_name]))
 }
 
 function openCreate () {

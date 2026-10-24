@@ -72,7 +72,7 @@ const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_type_id', label: 'Account Type ID', field: 'account_type_id', align: 'left' },
+  { name: 'account_type', label: 'Account Type', field: (row) => accountTypeNameById.value[row.account_type_id] || row.account_type_id, align: 'left' },
   { name: 'policy_name', label: 'Policy Name', field: 'policy_name', align: 'left' },
   { name: 'annual_rate', label: 'Annual Rate %', field: 'annual_rate', align: 'right' },
   { name: 'compounding_frequency', label: 'Compounding', field: 'compounding_frequency', align: 'left' },
@@ -83,6 +83,7 @@ const columns = [
 const rows = ref([])
 const search = ref('')
 const accountTypeOptions = ref([])
+const accountTypeNameById = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
@@ -111,6 +112,7 @@ async function loadRows () {
 async function loadOptions () {
   const { data } = await api.get('/account-types/')
   accountTypeOptions.value = data.map((t) => ({ label: `${t.type_code} - ${t.type_name}`, value: t.id }))
+  accountTypeNameById.value = Object.fromEntries(data.map((t) => [t.id, t.type_name]))
 }
 
 function openCreate () {

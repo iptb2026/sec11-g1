@@ -103,8 +103,10 @@ const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'source_account_id', label: 'From Account ID', field: 'source_account_id', align: 'left' },
-  { name: 'destination_account_id', label: 'To Account ID', field: 'destination_account_id', align: 'left' },
+  { name: 'from_account_number', label: 'From Account', field: (row) => accountNumberByAccountId.value[row.source_account_id] || row.source_account_id, align: 'left' },
+  { name: 'from_account_name', label: 'From Name', field: (row) => accountHolderByAccountId.value[row.source_account_id] || '', align: 'left' },
+  { name: 'to_account_number', label: 'To Account', field: (row) => accountNumberByAccountId.value[row.destination_account_id] || row.destination_account_id, align: 'left' },
+  { name: 'to_account_name', label: 'To Name', field: (row) => accountHolderByAccountId.value[row.destination_account_id] || '', align: 'left' },
   { name: 'transfer_reference', label: 'Reference', field: 'transfer_reference', align: 'left' },
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
@@ -114,6 +116,8 @@ const columns = [
 const rows = ref([])
 const search = ref('')
 const accountOptions = ref([])
+const accountNumberByAccountId = ref({})
+const accountHolderByAccountId = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
@@ -155,6 +159,10 @@ async function loadOptions () {
     value: a.id,
     holder: nameByUserId[a.customer_id] || '',
   }))
+  accountNumberByAccountId.value = Object.fromEntries(accounts.map((a) => [a.id, a.account_number]))
+  accountHolderByAccountId.value = Object.fromEntries(
+    accounts.map((a) => [a.id, nameByUserId[a.customer_id] || '']),
+  )
 }
 
 function openCreate () {

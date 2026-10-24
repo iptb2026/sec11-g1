@@ -91,8 +91,8 @@ const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_id', label: 'Account ID', field: 'account_id', align: 'left' },
-  { name: 'fee_type_id', label: 'Fee Type ID', field: 'fee_type_id', align: 'left' },
+  { name: 'account_number', label: 'Account', field: (row) => accountNumberByAccountId.value[row.account_id] || row.account_id, align: 'left' },
+  { name: 'fee_type', label: 'Fee Type', field: (row) => feeTypeNameById.value[row.fee_type_id] || row.fee_type_id, align: 'left' },
   { name: 'transaction_reference', label: 'Reference', field: 'transaction_reference', align: 'left' },
   { name: 'amount_charged', label: 'Amount Charged', field: 'amount_charged', align: 'right' },
   { name: 'charged_at', label: 'Charged At', field: 'charged_at', align: 'left' },
@@ -103,6 +103,8 @@ const rows = ref([])
 const search = ref('')
 const accountOptions = ref([])
 const feeTypeOptions = ref([])
+const accountNumberByAccountId = ref({})
+const feeTypeNameById = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
@@ -129,9 +131,11 @@ async function loadRows () {
 async function loadOptions () {
   const { data: accounts } = await api.get('/accounts/')
   accountOptions.value = accounts.map((a) => ({ label: a.account_number, value: a.id }))
+  accountNumberByAccountId.value = Object.fromEntries(accounts.map((a) => [a.id, a.account_number]))
 
   const { data: feeTypes } = await api.get('/fee-types/')
   feeTypeOptions.value = feeTypes.map((f) => ({ label: `${f.fee_code} - ${f.fee_name}`, value: f.id }))
+  feeTypeNameById.value = Object.fromEntries(feeTypes.map((f) => [f.id, f.fee_name]))
 }
 
 function openCreate () {

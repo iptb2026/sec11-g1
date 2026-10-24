@@ -73,8 +73,8 @@ const canWrite = useCanWrite()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_id', label: 'Account ID', field: 'account_id', align: 'left' },
-  { name: 'policy_id', label: 'Policy ID', field: 'policy_id', align: 'left' },
+  { name: 'account_number', label: 'Account', field: (row) => accountNumberByAccountId.value[row.account_id] || row.account_id, align: 'left' },
+  { name: 'policy', label: 'Policy', field: (row) => policyNameById.value[row.policy_id] || row.policy_id, align: 'left' },
   { name: 'amount_credited', label: 'Amount Credited', field: 'amount_credited', align: 'right' },
   { name: 'balance_before', label: 'Balance Before', field: 'balance_before', align: 'right' },
   { name: 'balance_after', label: 'Balance After', field: 'balance_after', align: 'right' },
@@ -86,6 +86,8 @@ const rows = ref([])
 const search = ref('')
 const accountOptions = ref([])
 const policyOptions = ref([])
+const accountNumberByAccountId = ref({})
+const policyNameById = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const emptyForm = () => ({ account_id: null, policy_id: null })
@@ -106,9 +108,11 @@ async function loadRows () {
 async function loadOptions () {
   const { data: accounts } = await api.get('/accounts/')
   accountOptions.value = accounts.map((a) => ({ label: a.account_number, value: a.id }))
+  accountNumberByAccountId.value = Object.fromEntries(accounts.map((a) => [a.id, a.account_number]))
 
   const { data: policies } = await api.get('/interest-policies/')
   policyOptions.value = policies.map((p) => ({ label: p.policy_name, value: p.id }))
+  policyNameById.value = Object.fromEntries(policies.map((p) => [p.id, p.policy_name]))
 }
 
 function openCreate () {

@@ -26,7 +26,7 @@ const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'user_id', label: 'User ID', field: 'user_id', align: 'left' },
+  { name: 'user', label: 'User', field: (row) => usernameById.value[row.user_id] || row.user_id, align: 'left' },
   { name: 'action_type', label: 'Action', field: 'action_type', align: 'left' },
   { name: 'entity_name', label: 'Entity', field: 'entity_name', align: 'left' },
   { name: 'entity_id', label: 'Entity ID', field: 'entity_id', align: 'left' },
@@ -37,6 +37,12 @@ const columns = [
 const rows = ref([])
 const search = ref('')
 const loading = ref(false)
+const usernameById = ref({})
+
+async function loadUsers () {
+  const { data } = await api.get('/users/')
+  usernameById.value = Object.fromEntries(data.map((u) => [u.id, u.username]))
+}
 
 async function loadRows () {
   loading.value = true
@@ -50,5 +56,8 @@ async function loadRows () {
   }
 }
 
-onMounted(loadRows)
+onMounted(() => {
+  loadRows()
+  loadUsers()
+})
 </script>
