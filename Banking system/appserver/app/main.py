@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import app.core.audit  # noqa: F401  (turns on automatic audit logging)
 from app.core.config import settings
-from app.core.security import ADMIN_ONLY, ADMIN_STAFF, ALL_ROLES, allow_roles
+from app.core.security import ADMIN_AUDITOR, ADMIN_ONLY, ADMIN_STAFF, ALL_ROLES, STAFF_READERS, allow_roles
 from app.database.session import Base, engine
 
 # ==== LAYER 1: Foundation & Reference Data ====
@@ -41,11 +42,14 @@ app.add_middleware(
 #   read  = roles allowed to GET, write = roles allowed to POST/PUT/DELETE
 # Routers that customers can read also filter rows to the customer's own
 # accounts, and /users checks "own profile" itself (see those routers).
+# AUDITOR can read everything except login sessions (they hold tokens) and
+# can write nothing.
 admin_only = [allow_roles(read=ADMIN_ONLY, write=ADMIN_ONLY)]
-reference_data = [allow_roles(read=ADMIN_STAFF, write=ADMIN_ONLY)]
-staff_work = [allow_roles(read=ADMIN_STAFF, write=ADMIN_STAFF)]
+audit_trail = [allow_roles(read=ADMIN_AUDITOR, write=())]
+reference_data = [allow_roles(read=STAFF_READERS, write=ADMIN_ONLY)]
+staff_work = [allow_roles(read=STAFF_READERS, write=ADMIN_STAFF)]
 customer_readable = [allow_roles(read=ALL_ROLES, write=ADMIN_STAFF)]
-users_policy = [allow_roles(read=ALL_ROLES, write=ALL_ROLES)]
+users_policy = [allow_roles(read=ALL_ROLES, write=("ADMIN", "STAFF", "CUSTOMER"))]
 
 # ==== LAYER 1: Foundation & Reference Data ====
 app.include_router(roles.router, dependencies=reference_data)
@@ -57,7 +61,7 @@ app.include_router(fee_types.router, dependencies=reference_data)
 app.include_router(users.router, dependencies=users_policy)
 app.include_router(auth.router)
 app.include_router(sessions.router, dependencies=admin_only)
-app.include_router(audit_logs.router, dependencies=admin_only)
+app.include_router(audit_logs.router, dependencies=audit_trail)
 
 # ==== LAYER 3: Account Configuration ====
 app.include_router(accounts.router, dependencies=customer_readable)

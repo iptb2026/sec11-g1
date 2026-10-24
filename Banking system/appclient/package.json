@@ -12,6 +12,7 @@
     "postinstall": "quasar prepare --silent"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-sans": "^5.2.8",
     "@quasar/extras": "^2.0.0",
     "axios": "^1.19.0",
     "pinia": "^4.0.2",

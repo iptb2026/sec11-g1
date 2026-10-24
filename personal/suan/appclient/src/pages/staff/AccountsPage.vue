@@ -8,7 +8,7 @@
 
     <q-table
       :rows="groupedRows"
-      :columns="columns"
+      :columns="tableColumns(columns)"
       :row-key="rowKey"
       :loading="loading"
       flat
@@ -25,8 +25,8 @@
         <q-tr v-else :props="props">
           <q-td v-for="col in props.cols" :key="col.name" :props="props">
             <template v-if="col.name === 'actions'">
-              <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
-              <q-btn dense flat round icon="delete" color="negative" @click="removeRow(props.row)" />
+              <q-btn dense flat round icon="edit" aria-label="Edit" color="primary" @click="openEdit(props.row)" />
+              <q-btn dense flat round icon="delete" aria-label="Delete" color="negative" @click="removeRow(props.row)" />
             </template>
             <template v-else>{{ col.value }}</template>
           </q-td>
@@ -41,7 +41,17 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
-          <q-input v-model="form.account_number" label="Account Number" filled />
+          <!-- The account number is assigned by the backend (1000000000 + id): a new account
+               shows the number it will get, an existing one shows its number. Never typed in. -->
+          <q-input
+            :model-value="form.account_number"
+            label="Account Number"
+            filled
+            readonly
+            :loading="!editingId && !form.account_number"
+          >
+            <template #prepend><q-icon name="tag" /></template>
+          </q-input>
           <q-select
             v-model="form.customer_id"
             label="Customer"
@@ -83,6 +93,7 @@
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
+import { tableColumns } from '@/utils/tableColumns'
 import api, { errorMessage } from '@/services/api'
 
 const $q = useQuasar()
@@ -190,10 +201,17 @@ async function refresh ({ silent = false } = {}) {
   }
 }
 
-function openCreate () {
+async function openCreate () {
   editingId.value = null
   form.value = emptyForm()
   showDialog.value = true
+  // Show the number this account will get; the backend assigns the final one on save.
+  try {
+    const { data } = await api.get('/accounts/next-number')
+    if (!editingId.value) form.value.account_number = data.account_number
+  } catch {
+    form.value.account_number = 'Assigned on save'
+  }
 }
 
 function openEdit (row) {
@@ -217,7 +235,12 @@ async function save () {
       // status is always ACTIVE on opening — the backend sets it.
       const body = { ...form.value }
       delete body.status
-      await api.post('/accounts/', body)
+      delete body.account_number // assigned by the backend
+      const { data } = await api.post('/accounts/', body)
+      showDialog.value = false
+      $q.notify({ type: 'positive', message: `Account ${data.account_number} opened` })
+      await refresh()
+      return
     }
     showDialog.value = false
     $q.notify({ type: 'positive', message: 'Account saved' })

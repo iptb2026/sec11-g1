@@ -5,6 +5,8 @@ from typing import Optional, Literal
 
 from pydantic import BaseModel, Field
 
+from app.core.timeutil import utc_now
+
 
 class WithdrawalCreate(BaseModel):
     account_id: int
@@ -13,7 +15,7 @@ class WithdrawalCreate(BaseModel):
     withdrawal_channel: Literal["ATM", "ONLINE", "BRANCH", "INTERBANK"]
     approved_by_user_id: Optional[int] = None
     remarks: Optional[str] = None
-    transaction_date: datetime = Field(default_factory=datetime.utcnow)
+    transaction_date: datetime = Field(default_factory=utc_now)
 
 
 class WithdrawalOut(BaseModel):

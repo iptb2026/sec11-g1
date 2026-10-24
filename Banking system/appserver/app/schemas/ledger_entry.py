@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.core.timeutil import utc_now
+
 
 class LedgerEntryCreate(BaseModel):
     account_id: int
@@ -15,7 +17,7 @@ class LedgerEntryCreate(BaseModel):
     ]
     debit_amount: Decimal = Decimal("0.00")
     credit_amount: Decimal = Decimal("0.00")
-    transaction_date: datetime = Field(default_factory=datetime.utcnow)
+    transaction_date: datetime = Field(default_factory=utc_now)
     # balance_after is NOT accepted here — see the router for why.
 
 

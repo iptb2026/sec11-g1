@@ -13,9 +13,11 @@ Safe to run again: existing rows (matched by their unique code) are left alone.
 """
 from datetime import date
 
+from app.core.money import credit
 from app.core.security import hash_password
 from app.database.session import Base, SessionLocal, engine
 import app.main  # noqa: F401  (imports every model so create_all sees all tables)
+from app.routers.accounts import opening_reference
 from app.models.account import Account
 from app.models.account_type import AccountType
 from app.models.bank import Bank
@@ -144,16 +146,19 @@ def main():
             owner = db.query(User).filter(User.username == username).first()
             account_type = type_ids[type_code]
             # Same rule as POST /accounts: the starting balance is the type's
-            # opening_deposit, so account_balance_audit reconciles to zero.
+            # opening_deposit (recorded in the ledger), so account_balance_audit
+            # reconciles to zero.
             account = Account(
                 account_number=number,
                 customer_id=owner.id,
                 account_type_id=account_type.id,
-                available_balance=account_type.opening_deposit,
-                ledger_balance=account_type.opening_deposit,
+                available_balance=0,
+                ledger_balance=0,
             )
             db.add(account)
             db.flush()
+            if account_type.opening_deposit:
+                credit(db, account, account_type.opening_deposit, opening_reference(account), "DEPOSIT")
             db.add(WithdrawalLimit(account_id=account.id,
                                    daily_limit_amount=account_type.daily_withdrawal_limit,
                                    last_reset_date=date.today()))

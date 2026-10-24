@@ -18,6 +18,11 @@ class UserCreate(BaseModel):
     account_status: Literal["ACTIVE", "LOCKED", "DISABLED"] = "ACTIVE"
 
 
+class UserUpdate(UserCreate):
+    # Blank or missing password on edit = keep the current one.
+    password: Optional[str] = None
+
+
 class UserOut(BaseModel):
     id: int
     username: str

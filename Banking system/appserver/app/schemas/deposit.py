@@ -5,6 +5,8 @@ from typing import Optional, Literal
 
 from pydantic import BaseModel, Field
 
+from app.core.timeutil import utc_now
+
 
 class DepositCreate(BaseModel):
     account_id: int
@@ -13,7 +15,7 @@ class DepositCreate(BaseModel):
     deposit_channel: Literal["CASH", "ATM", "ONLINE", "INTERBANK"]
     deposited_by_user_id: Optional[int] = None
     remarks: Optional[str] = None
-    transaction_date: datetime = Field(default_factory=datetime.utcnow)
+    transaction_date: datetime = Field(default_factory=utc_now)
 
 
 class DepositOut(BaseModel):
