@@ -1,0 +1,141 @@
+# Database Admin Runbook — Mini Banking System
+
+Everything the Database Admins need for the team database, in one folder. Connection settings come from `appserver/.env` (MySQL, schema `catarig`, `127.0.0.1:3306`, user `admin`), read by `appserver/app/core/config.py`. Copy `appserver/.env.example` to `appserver/.env` and fill in the DB password and a `SECRET_KEY`; `.env` is git-ignored, so secrets never go into git. If MySQL runs in Docker on a different port, change `DB_PORT` there; the API, Alembic and `seed.py` all read the same file.
+
+The team's MySQL (8.0) runs inside the **`ipt2-g1-home`** Docker container, which does not publish port 3306 to Windows. Run the backend, `alembic` and `seed.py` **inside that container** (where `127.0.0.1:3306` is correct), and pass `-Container ipt2-g1-home` to `backup.ps1`.
+
+| File | What it is |
+|---|---|
+| `verify.sql` | Health check: tables, foreign keys, row counts, plain-text passwords, demo users per role, balance reconciliation |
+| `account_balance_audit.sql` | Creates the `account_balance_audit` view: each account's balance next to what its transactions say it should be |
+| `backup.ps1` | Dumps the database to `database/backups/` (git-ignored, dumps contain password hashes) |
+| `ERD.md` | Entity-Relationship Diagram of all 17 tables, generated from the models |
+| `../appserver/migrations/` | Alembic migrations (schema changes, tracked in git) |
+| `../appserver/seed.py` | Demo data: roles, users, account types, banks, fee types, interest policy, one customer account |
+
+All commands below run from `Banking system/appserver` with its virtual environment active, unless they say otherwise.
+
+---
+
+## 1. Setting up a database
+
+**New, empty database** (creates all 17 tables, then the demo data):
+
+```powershell
+pip install -r requirements.txt
+alembic upgrade head
+python seed.py
+```
+
+**Database that already has the tables** (the API or `seed.py` created them with `create_all`). Tell Alembic it is already at the baseline, without touching any table:
+
+```powershell
+alembic stamp 0001_baseline
+python seed.py          # only adds what is missing
+```
+
+Then, in MySQL (from the `database` folder), create the audit view once:
+
+```sql
+USE catarig;
+SOURCE account_balance_audit.sql;
+```
+
+### Demo logins (from `seed.py`, password `password123`)
+
+| Username | Role | Has |
+|---|---|---|
+| `admin` | ADMIN | Admin pages |
+| `teller1` | STAFF | Staff pages |
+| `jdelacruz` | CUSTOMER | Savings account `1000000001` |
+
+`seed.py` never changes rows that already exist. On the team `catarig` database that means:
+- `admin` and `jdelacruz` already existed, so they keep **their old passwords**, not `password123`. Only `teller1` gets `password123` there.
+- `jdelacruz`'s account `1000000001` already exists with its real history (₱503 on 2026-10-23), so it is left as is. On a fresh database it opens with the `SAVINGS` opening deposit (₱1,000).
+
+---
+
+## 2. Before every demo or presentation
+
+1. Take a backup (section 3).
+2. Run the health check and read each result against the "Good:" line in the file:
+   ```sql
+   USE catarig;
+   SOURCE verify.sql;
+   ```
+   The two checks that most often catch real problems:
+   - **Plain-text passwords:** any row means that user cannot log in.
+   - **Balances:** any row from `account_balance_audit` means an account's balance no longer matches its transactions (see section 5).
+
+---
+
+## 3. Backups and restore
+
+From the `database` folder in PowerShell:
+
+```powershell
+.\backup.ps1                          # MySQL installed on this PC
+.\backup.ps1 -Container <name>        # MySQL in Docker (find the name with: docker ps)
+.\backup.ps1 -Port 3501               # any setting from config.py can be overridden
+```
+
+It asks for the MySQL password and writes `backups\catarig_<yyyyMMdd_HHmm>.sql`.
+
+Restore (this replaces the current data):
+
+```powershell
+mysql -h 127.0.0.1 -P 3306 -u admin -p catarig < backups\<file>.sql
+```
+
+Keep one **known-good** backup taken right after `seed.py` plus a few test transactions, and share it with the team outside git. That is the copy to restore before a demo.
+
+---
+
+## 4. Changing the schema (Alembic)
+
+`create_all` only creates missing tables; it never adds a column to a table that already exists. Every schema change from now on goes through Alembic so everyone's database stays the same:
+
+1. Edit the model in `app/models/`.
+2. Generate the migration (compares the models with your database):
+   ```powershell
+   alembic revision --autogenerate -m "add deleted_at to users"
+   ```
+3. **Read the new file in `migrations/versions/`** before using it. Autogenerate misses some things (for example renamed columns show up as drop + add, which loses data).
+4. Apply it: `alembic upgrade head`
+5. Commit the model change and the migration file together.
+
+Teammates then only run `alembic upgrade head` after pulling. `alembic current` shows which revision a database is at; `alembic downgrade -1` undoes the last migration.
+
+---
+
+## 5. Status of the Database Admin guide
+
+| Guide item | Status |
+|---|---|
+| Foreign keys are real constraints | **Done in the models.** All 20 relationships are `FOREIGN KEY`s when the tables come from the models or Alembic. `verify.sql` check 2 confirms it on the live database (needed if it was ever built from an old SQL script). |
+| Balance reconciliation | **Done.** `account_balance_audit` covers deposits, withdrawals, fees, interest, transfers in/out and interbank transfers + fee, not just the first four. |
+| Backups | **Done.** `backup.ps1`. |
+| Seed data | **Done.** `seed.py` now covers every reference table and one customer account. |
+| A. Migrations (Alembic) | **Done.** Baseline `0001_baseline` creates exactly what `create_all` creates (checked table by table). |
+| B. Indexes | **Not needed as written.** The guide's four columns (`users.username`, `accounts.account_number`, `deposits.reference_number`, `transfers.transfer_reference`) are already `UNIQUE`, and MySQL indexes every unique column and every foreign key. Adding them again creates duplicate indexes. Revisit only if a specific non-unique search becomes slow. The team database already has one such duplicate, `idx_interbank_reference` (same column as the unique `reference_number` index). It is declared in the model so Alembic leaves it alone; dropping it is safe but a team call. |
+| C. Balance floor `CHECK` | **Backend ready; constraint not added yet.** Every endpoint that changes a balance now commits through `commit_money` (`app/core/db_utils.py`), which turns MySQL error 3819 (`OperationalError`) into a 400 and rolls back. Tested with `CHECK (available_balance >= 0)` on `accounts`. Adding the constraint itself is an Alembic migration for Admin 1. |
+| D. Balance audit view | **Done**, as a real reconciliation (the guide's version only listed balances). |
+| E. Soft delete | **Team decision.** Changes every `DELETE` endpoint; raise with Backend before doing anything. |
+| F. ERD | **Done.** `ERD.md`. |
+
+### Issues found that affect balances (for Backend)
+
+These are why `account_balance_audit` can show a difference even when nobody touched MySQL directly:
+
+1. **Fixed: editing or deleting a transaction keeps the balance right.** `PUT` on deposits, withdrawals, transfers and fee records can only change descriptive fields (remarks, channel...); changing an amount or an account returns 400. `DELETE` on deposits, withdrawals, transfers, interbank transfers, fee records and interest records reverses the balance change (and writes a `REVERSAL` ledger row). Edits or deletes made *before* this fix still show up in `account_balance_audit`.
+2. **Fixed: failed or reversed interbank transfers are now refunded.** `PUT /interbank-transfers/{id}/status` to `FAILED` or `REVERSED` returns amount + fee to the source account, and those statuses can no longer change (no double refund). This is the fix from `personal/suan/appserver`, ported. Transfers marked FAILED/REVERSED *before* this fix were never refunded, so they will show up in `account_balance_audit` as a negative difference of amount + fee.
+
+---
+
+## Ownership split (two Database Admins)
+
+| Admin 1 — schema | Admin 2 — data |
+|---|---|
+| Alembic migrations, reviewing every schema change | Running `verify.sql`, investigating balance mismatches |
+| Constraints and indexes (items B, C, E above) | Backups, the known-good restore copy |
+| Keeping `ERD.md` current after schema changes | `seed.py` and demo-ready test data |
