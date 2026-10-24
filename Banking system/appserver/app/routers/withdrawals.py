@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
-from app.core.money import credit, current_limit, debit, ensure_active, ensure_funds, lock_account, reject_money_edits
+from app.core.money import credit, current_limit, debit, ensure_active, ensure_funds, ensure_minimum_balance, lock_account, reject_money_edits
 from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
@@ -28,6 +28,7 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
 
     ensure_active(account, "withdraw")
     ensure_funds(account, withdrawal.amount)
+    ensure_minimum_balance(db, account, withdrawal.amount)
 
     # If this account has a daily withdrawal limit (Layer 3), enforce it.
     # current_limit() locks the row and starts a new day's count when

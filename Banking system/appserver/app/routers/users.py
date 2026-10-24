@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
 from app.core.security import (
-    ADMIN_ONLY, STAFF_READERS, get_current_user, hash_password, require_role, role_code_of, roles_required,
+    ADMIN_ONLY, STAFF_READERS, check_password, get_current_user, hash_password, require_role, role_code_of,
+    roles_required,
 )
 from app.database.session import get_db
 from app.models.role import Role
@@ -81,7 +82,7 @@ def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_d
     # Only an admin may change who someone is or what they can do. Everyone else
     # editing their own profile keeps their username, role and status.
     protected = set() if is_admin else {"username", "role_id", "account_status"}
-    data = user_data.model_dump(exclude={"password"} | protected)
+    data = user_data.model_dump(exclude={"password", "current_password"} | protected)
 
     # Same uniqueness rules as create_user (otherwise the database refuses it with a 500).
     taken = None
@@ -100,11 +101,22 @@ def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_d
     ):
         raise HTTPException(status_code=409, detail="This is the last active admin; their role or status cannot change")
 
+    # Blank or missing password = keep the current one. Re-typing the current
+    # password is not a change either (the old Profile form required that).
+    new_password = user_data.password or None
+    if new_password and check_password(new_password, user.hashed_password):
+        new_password = None
+    # Changing your OWN password needs the current one, so a stolen session (or a
+    # typo in the new one) can't silently replace it. An admin resetting someone
+    # else's password doesn't know theirs, so that case skips the check.
+    if new_password and user_id == current_user.id:
+        if not user_data.current_password or not check_password(user_data.current_password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+
     for field, value in data.items():
         setattr(user, field, value)
-    # Blank or missing password = keep the current one.
-    if user_data.password:
-        user.hashed_password = hash_password(user_data.password)
+    if new_password:
+        user.hashed_password = hash_password(new_password)
 
     commit_or_409(db, "username or email already in use")
     db.refresh(user)

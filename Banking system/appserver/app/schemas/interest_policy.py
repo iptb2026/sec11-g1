@@ -3,13 +3,13 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class InterestPolicyCreate(BaseModel):
     account_type_id: int
     policy_name: str
-    annual_rate: Decimal
+    annual_rate: Decimal = Field(ge=0, le=100)
     compounding_frequency: Literal["DAILY", "MONTHLY", "QUARTERLY", "YEARLY"] = "MONTHLY"
     effective_date: date
     expiration_date: Optional[date] = None

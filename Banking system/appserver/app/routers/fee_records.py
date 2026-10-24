@@ -6,12 +6,14 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
 from app.core.money import credit, debit, lock_account, reject_money_edits
+from app.core.security import get_current_user, own_account_ids
 from app.database.session import get_db
 from app.models.deposit import Deposit
 from app.models.fee_record import FeeRecord
 from app.models.fee_type import FeeType
 from app.models.interbank_transfer import InterbankTransfer
 from app.models.transfer import Transfer
+from app.models.user import User
 from app.models.withdrawal import Withdrawal
 from app.schemas.fee_record import FeeRecordCreate, FeeRecordOut
 
@@ -82,14 +84,19 @@ def create_fee_record(fee: FeeRecordCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[FeeRecordOut])
-def list_fee_records(db: Session = Depends(get_db)):
-    return db.query(FeeRecord).all()
+def list_fee_records(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    query = db.query(FeeRecord)
+    ids = own_account_ids(current_user, db)
+    if ids is not None:  # customers only see fees on their own accounts
+        query = query.filter(FeeRecord.account_id.in_(ids))
+    return query.all()
 
 
 @router.get("/{fee_id}", response_model=FeeRecordOut)
-def get_fee_record(fee_id: int, db: Session = Depends(get_db)):
+def get_fee_record(fee_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     fee = db.query(FeeRecord).filter(FeeRecord.id == fee_id).first()
-    if not fee:
+    ids = own_account_ids(current_user, db)
+    if not fee or (ids is not None and not fee.account_id in ids):
         raise HTTPException(status_code=404, detail="Fee record not found")
     return fee
 

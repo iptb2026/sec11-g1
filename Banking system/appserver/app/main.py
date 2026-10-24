@@ -75,9 +75,9 @@ app.include_router(transfers.router, dependencies=customer_readable)
 app.include_router(interbank_transfers.router, dependencies=customer_readable)
 
 # ==== LAYER 5: Financial Records & Ledger ====
-app.include_router(fee_records.router, dependencies=staff_work)
-app.include_router(interest_records.router, dependencies=staff_work)
-app.include_router(ledger_entries.router, dependencies=staff_work)
+app.include_router(fee_records.router, dependencies=customer_readable)
+app.include_router(interest_records.router, dependencies=customer_readable)
+app.include_router(ledger_entries.router, dependencies=customer_readable)
 
 
 @app.get("/", tags=["Health"])

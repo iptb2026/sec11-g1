@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
-from app.core.money import credit, debit, ensure_active, ensure_funds, lock_account
+from app.core.money import credit, debit, ensure_active, ensure_funds, ensure_minimum_balance, lock_account
 from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
@@ -50,6 +50,7 @@ def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = D
 
     total_debit = transfer.amount + transfer.transfer_fee
     ensure_funds(source, total_debit, "Insufficient balance to cover amount + transfer fee")
+    ensure_minimum_balance(db, source, total_debit)
 
     # Unlike an internal `transfer`, the destination bank is external — we
     # can only debit our own side. The transfer starts PROCESSING (not

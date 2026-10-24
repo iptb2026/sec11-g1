@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.timeutil import utc_now
 from app.models.account import Account
+from app.models.account_type import AccountType
 from app.models.ledger_entry import LedgerEntry
 from app.models.withdrawal_limit import WithdrawalLimit
 
@@ -39,6 +40,21 @@ def ensure_active(account: Account, action: str) -> None:
 def ensure_funds(account: Account, amount: Decimal, what: str = "Insufficient balance") -> None:
     if account.available_balance < amount:
         raise HTTPException(status_code=400, detail=what)
+
+
+def ensure_minimum_balance(db: Session, account: Account, amount: Decimal) -> None:
+    """
+    Money the customer sends out (withdrawals, transfers, interbank) may not
+    take the balance below the account type's minimum_balance. Reversals and
+    fees don't check this: undoing a mistake must always be possible.
+    """
+    account_type = db.query(AccountType).filter(AccountType.id == account.account_type_id).first()
+    minimum = account_type.minimum_balance if account_type else ZERO
+    if minimum and account.available_balance - amount < minimum:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Account {account.account_number} must keep a minimum balance of {minimum:,.2f} ({account_type.type_code})",
+        )
 
 
 def _post(db: Session, account: Account, reference: str, kind: str,

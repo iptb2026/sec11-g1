@@ -42,10 +42,14 @@ def update_bank(bank_id: int, data: BankCreate, db: Session = Depends(get_db)):
     if not bank:
         raise HTTPException(status_code=404, detail="Bank not found")
 
+    duplicate = db.query(Bank).filter(Bank.bank_code == data.bank_code, Bank.id != bank_id).first()
+    if duplicate:
+        raise HTTPException(status_code=400, detail="bank_code already exists")
+
     for field, value in data.model_dump().items():
         setattr(bank, field, value)
 
-    db.commit()
+    commit_or_409(db, "bank_code already exists")
     db.refresh(bank)
     return bank
 

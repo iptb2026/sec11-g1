@@ -42,10 +42,14 @@ def update_fee_type(fee_type_id: int, data: FeeTypeCreate, db: Session = Depends
     if not fee_type:
         raise HTTPException(status_code=404, detail="Fee type not found")
 
+    duplicate = db.query(FeeType).filter(FeeType.fee_code == data.fee_code, FeeType.id != fee_type_id).first()
+    if duplicate:
+        raise HTTPException(status_code=400, detail="fee_code already exists")
+
     for field, value in data.model_dump().items():
         setattr(fee_type, field, value)
 
-    db.commit()
+    commit_or_409(db, "fee_code already exists")
     db.refresh(fee_type)
     return fee_type
 
