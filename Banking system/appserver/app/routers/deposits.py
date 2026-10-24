@@ -2,9 +2,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.db_utils import commit_money
+from app.core.money import credit, debit, ensure_active, ensure_funds, lock_account, reject_money_edits
 from app.core.security import get_current_user, own_account_ids
 from app.database.session import get_db
-from app.models.account import Account
 from app.models.deposit import Deposit
 from app.models.user import User
 from app.schemas.deposit import DepositCreate, DepositOut
@@ -14,12 +15,10 @@ router = APIRouter(prefix="/deposits", tags=["Layer 4 - Deposits"])
 
 @router.post("/", response_model=DepositOut, status_code=status.HTTP_201_CREATED)
 def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
-    # .with_for_update() locks this account row until the commit below, so a
+    # lock_account() locks this account row until the commit below, so a
     # second request touching the same account has to wait its turn instead
     # of reading a stale balance and silently overwriting this change.
-    account = db.query(Account).filter(Account.id == deposit.account_id).with_for_update().first()
-    if not account:
-        raise HTTPException(status_code=400, detail="account_id does not exist")
+    account = lock_account(db, deposit.account_id)
 
     if deposit.deposited_by_user_id is not None:
         user = db.query(User).filter(User.id == deposit.deposited_by_user_id).first()
@@ -30,14 +29,16 @@ def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="reference_number already exists")
 
+    # FROZEN and CLOSED accounts cannot receive deposits.
+    ensure_active(account, "receive deposits")
+
     new_deposit = Deposit(**deposit.model_dump())
     db.add(new_deposit)
 
     # This is the actual point of a deposit: money enters the account.
-    account.available_balance += deposit.amount
-    account.ledger_balance += deposit.amount
+    credit(db, account, deposit.amount, deposit.reference_number, "DEPOSIT", deposit.transaction_date)
 
-    db.commit()
+    commit_money(db)
     db.refresh(new_deposit)
     return new_deposit
 
@@ -63,16 +64,24 @@ def get_deposit(deposit_id: int, db: Session = Depends(get_db), current_user: Us
 @router.put("/{deposit_id}", response_model=DepositOut)
 def update_deposit(deposit_id: int, data: DepositCreate, db: Session = Depends(get_db)):
     """
-    NOTE: this only edits the deposit record itself (e.g. fixing a typo in
-    `remarks`). It does NOT re-adjust the account balance for the amount
-    difference. Real banking systems never edit a posted transaction for
-    exactly this reason — see the Layer 4 guide for why.
+    Fixes the descriptive fields only (remarks, channel, date...). The amount
+    and the account cannot change: that would leave the balance wrong. Delete
+    the deposit instead (which reverses it) and record a new one.
     """
     deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
     if not deposit:
         raise HTTPException(status_code=404, detail="Deposit not found")
 
-    for field, value in data.model_dump().items():
+    fields = data.model_dump()
+    reject_money_edits(deposit, fields, ("account_id", "amount"))
+
+    duplicate = db.query(Deposit).filter(
+        Deposit.reference_number == data.reference_number, Deposit.id != deposit_id
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=400, detail="reference_number already exists")
+
+    for field, value in fields.items():
         setattr(deposit, field, value)
 
     db.commit()
@@ -82,10 +91,14 @@ def update_deposit(deposit_id: int, data: DepositCreate, db: Session = Depends(g
 
 @router.delete("/{deposit_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_deposit(deposit_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not reverse the account balance change either — see the Layer 4 guide."""
-    deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
+    """Reverses the deposit: the amount leaves the account again, and the ledger records a REVERSAL."""
+    deposit = db.query(Deposit).filter(Deposit.id == deposit_id).with_for_update().first()
     if not deposit:
         raise HTTPException(status_code=404, detail="Deposit not found")
 
+    account = lock_account(db, deposit.account_id)
+    ensure_funds(account, deposit.amount, "The account no longer holds this deposit's amount, cannot reverse it")
+    debit(db, account, deposit.amount, deposit.reference_number, "REVERSAL")
+
     db.delete(deposit)
-    db.commit()
+    commit_money(db)

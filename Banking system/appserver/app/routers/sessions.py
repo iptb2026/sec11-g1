@@ -1,10 +1,10 @@
 # ==== LAYER 2: Identity & Access ====
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
+from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.session import UserSession
 from app.models.user import User
@@ -46,7 +46,7 @@ def revoke_session(session_id: int, db: Session = Depends(get_db)):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session.revoked_at = datetime.utcnow()
+    session.revoked_at = utc_now()
     db.commit()
     db.refresh(session)
     return session

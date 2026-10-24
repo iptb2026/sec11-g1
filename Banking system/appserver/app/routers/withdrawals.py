@@ -2,12 +2,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.db_utils import commit_money
+from app.core.money import credit, current_limit, debit, ensure_active, ensure_funds, lock_account, reject_money_edits
 from app.core.security import get_current_user, own_account_ids
 from app.database.session import get_db
-from app.models.account import Account
 from app.models.user import User
 from app.models.withdrawal import Withdrawal
-from app.models.withdrawal_limit import WithdrawalLimit
 from app.schemas.withdrawal import WithdrawalCreate, WithdrawalOut
 
 router = APIRouter(prefix="/withdrawals", tags=["Layer 4 - Withdrawals"])
@@ -19,9 +19,7 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
     # this, two withdrawals submitted at nearly the same moment could both
     # read the same starting balance and one of their deductions would be
     # silently lost (a "lost update").
-    account = db.query(Account).filter(Account.id == withdrawal.account_id).with_for_update().first()
-    if not account:
-        raise HTTPException(status_code=400, detail="account_id does not exist")
+    account = lock_account(db, withdrawal.account_id)
 
     if withdrawal.approved_by_user_id is not None:
         user = db.query(User).filter(User.id == withdrawal.approved_by_user_id).first()
@@ -32,27 +30,24 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
     if existing:
         raise HTTPException(status_code=400, detail="reference_number already exists")
 
-    if account.status != "ACTIVE":
-        raise HTTPException(status_code=400, detail=f"Account is {account.status}, cannot withdraw")
-
-    if account.available_balance < withdrawal.amount:
-        raise HTTPException(status_code=400, detail="Insufficient balance")
+    ensure_active(account, "withdraw")
+    ensure_funds(account, withdrawal.amount)
 
     # If this account has a daily withdrawal limit (Layer 3), enforce it.
-    # Also locked, for the same reason as the account row above.
-    limit = db.query(WithdrawalLimit).filter(WithdrawalLimit.account_id == account.id).with_for_update().first()
+    # current_limit() locks the row and starts a new day's count when
+    # last_reset_date is before today.
+    limit = current_limit(db, account)
     if limit and (limit.daily_used_amount + withdrawal.amount) > limit.daily_limit_amount:
         raise HTTPException(status_code=400, detail="This withdrawal would exceed the daily withdrawal limit")
 
     new_withdrawal = Withdrawal(**withdrawal.model_dump())
     db.add(new_withdrawal)
 
-    account.available_balance -= withdrawal.amount
-    account.ledger_balance -= withdrawal.amount
+    debit(db, account, withdrawal.amount, withdrawal.reference_number, "WITHDRAWAL", withdrawal.transaction_date)
     if limit:
         limit.daily_used_amount += withdrawal.amount
 
-    db.commit()
+    commit_money(db)
     db.refresh(new_withdrawal)
     return new_withdrawal
 
@@ -77,12 +72,21 @@ def get_withdrawal(withdrawal_id: int, db: Session = Depends(get_db), current_us
 
 @router.put("/{withdrawal_id}", response_model=WithdrawalOut)
 def update_withdrawal(withdrawal_id: int, data: WithdrawalCreate, db: Session = Depends(get_db)):
-    """NOTE: does not re-adjust the account balance or the daily limit usage — see the Layer 4 guide."""
+    """Fixes the descriptive fields only; the amount and the account cannot change (see deposits.py)."""
     withdrawal = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
     if not withdrawal:
         raise HTTPException(status_code=404, detail="Withdrawal not found")
 
-    for field, value in data.model_dump().items():
+    fields = data.model_dump()
+    reject_money_edits(withdrawal, fields, ("account_id", "amount"))
+
+    duplicate = db.query(Withdrawal).filter(
+        Withdrawal.reference_number == data.reference_number, Withdrawal.id != withdrawal_id
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=400, detail="reference_number already exists")
+
+    for field, value in fields.items():
         setattr(withdrawal, field, value)
 
     db.commit()
@@ -92,10 +96,21 @@ def update_withdrawal(withdrawal_id: int, data: WithdrawalCreate, db: Session = 
 
 @router.delete("/{withdrawal_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not reverse the account balance or the daily limit usage — see the Layer 4 guide."""
-    withdrawal = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
+    """
+    Reverses the withdrawal: the amount goes back into the account (ledger
+    REVERSAL). If it was made today, it also stops counting toward today's
+    withdrawal limit.
+    """
+    withdrawal = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).with_for_update().first()
     if not withdrawal:
         raise HTTPException(status_code=404, detail="Withdrawal not found")
 
+    account = lock_account(db, withdrawal.account_id)
+    credit(db, account, withdrawal.amount, withdrawal.reference_number, "REVERSAL")
+
+    limit = current_limit(db, account)
+    if limit and withdrawal.transaction_date.date() == limit.last_reset_date:
+        limit.daily_used_amount = max(limit.daily_used_amount - withdrawal.amount, 0)
+
     db.delete(withdrawal)
-    db.commit()
+    commit_money(db)

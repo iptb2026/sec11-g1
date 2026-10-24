@@ -1,12 +1,14 @@
 # ==== LAYER 2: Identity & Access ====
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from app.core.audit import remember_request_user
 from app.core.config import settings
 from app.core.security import check_password, create_token, get_current_user, oauth2_scheme
+from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.role import Role
 from app.models.session import UserSession
@@ -33,7 +35,8 @@ def login(
     if user.account_status != "ACTIVE":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active")
 
-    expires_at = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    remember_request_user(db, user.id, request)  # the LOGIN audit row belongs to this user
+    expires_at = utc_now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     token = create_token(user.username, expires_at)
 
     # Every successful login is recorded as a row in `sessions` (Layer 2 table).
@@ -46,19 +49,20 @@ def login(
     )
     db.add(new_session)
 
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = utc_now()
 
     db.commit()
     return Token(access_token=token)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def logout(request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     session = db.query(UserSession).filter(UserSession.jwt_token == token).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session.revoked_at = datetime.utcnow()
+    remember_request_user(db, session.user_id, request)  # the LOGOUT audit row belongs to this user
+    session.revoked_at = utc_now()
     db.commit()
 
 

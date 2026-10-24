@@ -7,7 +7,9 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from app.core.audit import remember_request_user
 from app.core.config import settings
+from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.role import Role
@@ -53,7 +55,7 @@ def _unauthorized(detail: str) -> HTTPException:
     )
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+def get_current_user(request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     """
     Used on every protected route (see main.py).
     FastAPI grabs the token from the "Authorization: Bearer ..." header and
@@ -62,7 +64,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
       - its row in `sessions` exists and was not revoked by /auth/logout,
       - the user still exists and is ACTIVE.
     Otherwise it stops with 401, which makes the frontend send the user to /login.
-    Returns the logged-in User.
+    Returns the logged-in User, and remembers them on the request's DB session
+    so the automatic audit log (core/audit.py) knows who made each change.
     """
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -74,13 +77,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise _unauthorized("Invalid token")
 
     session = db.query(UserSession).filter(UserSession.jwt_token == token).first()
-    if not session or session.revoked_at is not None or session.expires_at < datetime.utcnow():
+    if not session or session.revoked_at is not None or session.expires_at < utc_now():
         raise _unauthorized("Session has ended, please log in again")
 
     user = db.query(User).filter(User.id == session.user_id).first()
     if not user or user.username != username or user.account_status != "ACTIVE":
         raise _unauthorized("Account is not active")
 
+    remember_request_user(db, user.id, request)
     return user
 
 
@@ -88,7 +92,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 ADMIN_ONLY = ("ADMIN",)
 ADMIN_STAFF = ("ADMIN", "STAFF")
-ALL_ROLES = ("ADMIN", "STAFF", "CUSTOMER")
+ALL_ROLES = ("ADMIN", "STAFF", "CUSTOMER", "AUDITOR")
+# AUDITOR: read-only access to everything an admin can read (except login
+# sessions, which hold tokens), and no write access anywhere.
+ADMIN_AUDITOR = ("ADMIN", "AUDITOR")
+STAFF_READERS = ("ADMIN", "STAFF", "AUDITOR")
 
 
 def role_code_of(user: User, db: Session) -> str | None:
@@ -126,8 +134,8 @@ def allow_roles(read: tuple, write: tuple):
 def own_account_ids(user: User, db: Session) -> list[int] | None:
     """
     For list/get endpoints that customers can read: None means "no filter"
-    (ADMIN/STAFF see everything); otherwise the ids of the customer's own accounts.
+    (ADMIN/STAFF/AUDITOR see everything); otherwise the ids of the customer's own accounts.
     """
-    if role_code_of(user, db) in ADMIN_STAFF:
+    if role_code_of(user, db) in STAFF_READERS:
         return None
     return [a.id for a in db.query(Account.id).filter(Account.customer_id == user.id).all()]

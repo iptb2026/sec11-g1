@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
 from app.core.security import (
-    ADMIN_ONLY, ADMIN_STAFF, get_current_user, hash_password, require_role, role_code_of, roles_required,
+    ADMIN_ONLY, STAFF_READERS, get_current_user, hash_password, require_role, role_code_of, roles_required,
 )
 from app.database.session import get_db
 from app.models.role import Role
 from app.models.user import User
-from app.schemas.user import UserCreate, UserOut
+from app.schemas.user import UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["Layer 2 - Users"])
 
@@ -22,9 +22,12 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     if not role:
         raise HTTPException(status_code=400, detail="role_id does not exist")
 
-    existing = db.query(User).filter(
-        (User.username == user.username) | (User.email == user.email)
-    ).first()
+    # Only compare emails when one was given: `User.email == None` would
+    # become `email IS NULL` and match every other user without an email.
+    taken = User.username == user.username
+    if user.email:
+        taken = taken | (User.email == user.email)
+    existing = db.query(User).filter(taken).first()
     if existing:
         raise HTTPException(status_code=400, detail="username or email already in use")
 
@@ -36,7 +39,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-@router.get("/", response_model=list[UserOut], dependencies=[roles_required(ADMIN_STAFF)])
+@router.get("/", response_model=list[UserOut], dependencies=[roles_required(STAFF_READERS)])
 def list_users(db: Session = Depends(get_db)):
     return db.query(User).all()
 
@@ -44,7 +47,7 @@ def list_users(db: Session = Depends(get_db)):
 @router.get("/{user_id}", response_model=UserOut)
 def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if user_id != current_user.id:
-        require_role(current_user, db, ADMIN_STAFF)
+        require_role(current_user, db, STAFF_READERS)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -52,7 +55,7 @@ def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = D
 
 
 @router.put("/{user_id}", response_model=UserOut)
-def update_user(user_id: int, user_data: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     is_admin = role_code_of(current_user, db) == "ADMIN"
     if user_id != current_user.id and not is_admin:
         raise HTTPException(status_code=403, detail="You can only edit your own profile")
@@ -70,7 +73,9 @@ def update_user(user_id: int, user_data: UserCreate, db: Session = Depends(get_d
     data = user_data.model_dump(exclude={"password"} | protected)
     for field, value in data.items():
         setattr(user, field, value)
-    user.hashed_password = hash_password(user_data.password)
+    # Blank or missing password = keep the current one.
+    if user_data.password:
+        user.hashed_password = hash_password(user_data.password)
 
     db.commit()
     db.refresh(user)
