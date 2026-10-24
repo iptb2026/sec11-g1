@@ -2,7 +2,9 @@
 from datetime import datetime
 from typing import Optional, Literal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
+
+from app.schemas.email import OptionalEmail
 
 
 class BankCreate(BaseModel):
@@ -11,7 +13,7 @@ class BankCreate(BaseModel):
     bank_name: str
     short_name: Optional[str] = None
     api_endpoint: Optional[str] = None
-    contact_email: Optional[EmailStr] = None
+    contact_email: OptionalEmail = None
     status: Literal["ACTIVE", "INACTIVE"] = "ACTIVE"
 
 

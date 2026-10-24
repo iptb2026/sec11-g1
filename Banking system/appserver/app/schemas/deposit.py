@@ -5,17 +5,16 @@ from typing import Optional, Literal
 
 from pydantic import BaseModel, Field
 
-from app.core.timeutil import utc_now
-
 
 class DepositCreate(BaseModel):
     account_id: int
     reference_number: str
     amount: Decimal = Field(gt=0)
     deposit_channel: Literal["CASH", "ATM", "ONLINE", "INTERBANK"]
-    deposited_by_user_id: Optional[int] = None
     remarks: Optional[str] = None
-    transaction_date: datetime = Field(default_factory=utc_now)
+    # NOTE: transaction_date and deposited_by_user_id are set by the server
+    # (now, and the logged-in user), so a deposit can't be backdated or
+    # recorded in someone else's name.
 
 
 class DepositOut(BaseModel):

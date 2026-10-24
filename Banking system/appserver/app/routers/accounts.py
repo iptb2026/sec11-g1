@@ -133,13 +133,19 @@ def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(g
     if not account_type:
         raise HTTPException(status_code=400, detail="account_type_id does not exist")
 
+    duplicate = db.query(Account).filter(
+        Account.account_number == data.account_number, Account.id != account_id
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=400, detail="account_number already exists")
+
     if data.status == "CLOSED" and account.status != "CLOSED":
         account.closed_at = utc_now()
 
     for field, value in data.model_dump().items():
         setattr(account, field, value)
 
-    db.commit()
+    commit_or_409(db, "account_number already exists")
     db.refresh(account)
     return account
 
