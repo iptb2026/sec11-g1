@@ -6,8 +6,12 @@ The team's MySQL (8.0) runs inside the **`ipt2-g1-home`** Docker container, whic
 
 | File | What it is |
 |---|---|
-| `verify.sql` | Health check: tables, foreign keys, row counts, plain-text passwords, demo users per role, balance reconciliation |
+| `verify.sql` | Health check: tables, foreign keys, row counts, plain-text passwords, demo users per role, balance reconciliation, ledger vs balance, balance floor |
 | `account_balance_audit.sql` | Creates the `account_balance_audit` view: each account's balance next to what its transactions say it should be |
+| `reset_transactions.sql` | Clears every transaction and puts accounts back at their opening deposit, for a clean demo (section 2) |
+| `../appserver/backfill_ledger.py` | Writes the ledger rows missing for transactions made before the ledger was automatic (PR #19) |
+| `../appserver/demo_data.py` | Creates demo customers, accounts and transactions **through the API** |
+| `../appserver/set_password.py` | Sets a user's password, e.g. `admin` before a demo |
 | `backup.ps1` | Dumps the database to `database/backups/` (git-ignored, dumps contain password hashes) |
 | `ERD.md` | Entity-Relationship Diagram of all 17 tables, generated from the models |
 | `../appserver/migrations/` | Alembic migrations (schema changes, tracked in git) |
@@ -27,12 +31,17 @@ alembic upgrade head
 python seed.py
 ```
 
-**Database that already has the tables** (the API or `seed.py` created them with `create_all`). Tell Alembic it is already at the baseline, without touching any table:
+**Database that already has the tables** (the API or `seed.py` created them with `create_all`). Tell Alembic which revision it is at, without touching any table, then bring it up to date:
 
 ```powershell
-alembic stamp 0001_baseline
-python seed.py          # only adds what is missing
+alembic stamp 0001_baseline   # tables made before 2026-10-24 (like catarig)
+alembic upgrade head          # adds the balance floor (0002_balance_checks)
+python seed.py                # only adds what is missing
 ```
+
+Tables made by `create_all` on or after 2026-10-24 already have the balance floor, so stamp those with `alembic stamp head` instead.
+
+**The team `catarig` database** is already stamped at `0001_baseline`, so it only needs `alembic upgrade head`. If an account is below 0 the upgrade stops with error 3819 and tells you how to find it.
 
 Then, in MySQL (from the `database` folder), create the audit view once:
 
@@ -57,6 +66,32 @@ SOURCE account_balance_audit.sql;
 
 ## 2. Before every demo or presentation
 
+### Once: clean demo data
+
+The team database still holds test transactions (including a −500.00 deposit made before negative amounts were blocked). To start the demo from clean, realistic data:
+
+1. Take a backup (section 3).
+2. Clear the test transactions, in MySQL from the `database` folder:
+   ```sql
+   USE catarig;
+   SOURCE reset_transactions.sql;
+   ```
+3. From `appserver`, write each account's opening ledger row and set a known admin password:
+   ```powershell
+   python backfill_ledger.py --apply
+   python set_password.py admin
+   ```
+4. Start the backend, then add demo transactions through the API (`--api` is the backend address, through NGINX if it runs there):
+   ```powershell
+   python demo_data.py --password <the admin password from step 3>
+   ```
+   This creates customers `lmercado` and `preyes` (password `password123`), a savings account each, deposits, a withdrawal, a transfer between them and an interbank transfer to BDO.
+5. Run `verify.sql` (below), then take a backup and name it as the team's **known-good** copy. Share it outside git (e.g. the team's Google Drive) so anyone can restore it before the demo.
+
+To keep the existing transactions instead, run only `python backfill_ledger.py` (dry run first, then `--apply`) so the old transactions get their ledger rows.
+
+### Every time
+
 1. Take a backup (section 3).
 2. Run the health check and read each result against the "Good:" line in the file:
    ```sql
@@ -66,6 +101,7 @@ SOURCE account_balance_audit.sql;
    The two checks that most often catch real problems:
    - **Plain-text passwords:** any row means that user cannot log in.
    - **Balances:** any row from `account_balance_audit` means an account's balance no longer matches its transactions (see section 5).
+   - **Ledger:** any row in section 7 means the ledger doesn't add up to the balance. `ledger_entries = 0` only means old transactions without ledger rows: run `backfill_ledger.py`.
 
 ---
 
@@ -118,7 +154,7 @@ Teammates then only run `alembic upgrade head` after pulling. `alembic current` 
 | Seed data | **Done.** `seed.py` now covers every reference table and one customer account. |
 | A. Migrations (Alembic) | **Done.** Baseline `0001_baseline` creates exactly what `create_all` creates (checked table by table). |
 | B. Indexes | **Not needed as written.** The guide's four columns (`users.username`, `accounts.account_number`, `deposits.reference_number`, `transfers.transfer_reference`) are already `UNIQUE`, and MySQL indexes every unique column and every foreign key. Adding them again creates duplicate indexes. Revisit only if a specific non-unique search becomes slow. The team database already has one such duplicate, `idx_interbank_reference` (same column as the unique `reference_number` index). It is declared in the model so Alembic leaves it alone; dropping it is safe but a team call. |
-| C. Balance floor `CHECK` | **Backend ready; constraint not added yet.** Every endpoint that changes a balance now commits through `commit_money` (`app/core/db_utils.py`), which turns MySQL error 3819 (`OperationalError`) into a 400 and rolls back. Tested with `CHECK (available_balance >= 0)` on `accounts`. Adding the constraint itself is an Alembic migration for Admin 1. |
+| C. Balance floor `CHECK` | **Done.** Migration `0002_balance_checks` adds `CHECK (available_balance >= 0)` and `CHECK (ledger_balance >= 0)` on `accounts` (also declared in the model). Every endpoint that changes a balance commits through `commit_money` (`app/core/db_utils.py`), which turns MySQL error 3819 into a 400 and rolls back. `verify.sql` section 8 confirms it on the live database. |
 | D. Balance audit view | **Done**, as a real reconciliation (the guide's version only listed balances). |
 | E. Soft delete | **Team decision.** Changes every `DELETE` endpoint; raise with Backend before doing anything. |
 | F. ERD | **Done.** `ERD.md`. |
