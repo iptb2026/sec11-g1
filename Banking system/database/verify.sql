@@ -163,3 +163,16 @@ SELECT CONSTRAINT_NAME, CHECK_CLAUSE
 FROM information_schema.CHECK_CONSTRAINTS
 WHERE CONSTRAINT_SCHEMA = DATABASE()
   AND CONSTRAINT_NAME LIKE 'chk_accounts_%';
+
+
+-- ---------------------------------------------------------------------
+-- 9. Every account whose type has a daily withdrawal limit has its
+--    withdrawal_limits row (the API creates it for new accounts).
+--    Good: no rows returned. Rows: run align_account_types.sql.
+-- ---------------------------------------------------------------------
+SELECT a.id AS account_id, a.account_number, at.type_code, at.daily_withdrawal_limit
+FROM accounts a
+JOIN account_types at ON at.id = a.account_type_id
+LEFT JOIN withdrawal_limits wl ON wl.account_id = a.id
+WHERE wl.id IS NULL
+  AND at.daily_withdrawal_limit > 0;
