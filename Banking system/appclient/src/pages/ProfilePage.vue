@@ -18,11 +18,21 @@
           <q-input v-model="form.mobile_number" label="Mobile Number" filled />
           <q-input v-model="form.date_of_birth" :rules="[optionalDate]" lazy-rules label="Date of Birth" filled hint="YYYY-MM-DD" />
           <q-input
-            v-model="form.password" :rules="[required]" lazy-rules
-            label="Password"
+            v-model="form.password" :rules="[optionalPassword]" lazy-rules
+            label="New Password"
             type="password"
+            autocomplete="new-password"
             filled
-            hint="Required to save: re-enter your current password or set a new one"
+            hint="Leave blank to keep your current password"
+          />
+          <q-input
+            v-if="form.password"
+            v-model="form.current_password" :rules="[required]" lazy-rules
+            label="Current Password"
+            type="password"
+            autocomplete="current-password"
+            filled
+            hint="Needed to change your password"
           />
         </q-card-section>
 
@@ -41,7 +51,7 @@ import { useQuasar } from 'quasar'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { errorMessage } from '@/utils/notify-error'
-import { required, optionalDate, optionalEmail } from '@/utils/validation'
+import { required, optionalDate, optionalEmail, optionalPassword } from '@/utils/validation'
 
 const $q = useQuasar()
 const auth = useAuthStore()
@@ -64,6 +74,7 @@ async function loadProfile () {
       last_name: data.last_name,
       date_of_birth: data.date_of_birth,
       password: '',
+      current_password: '',
     }
   } catch (err) {
     $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load profile') })
@@ -79,12 +90,18 @@ async function save () {
     // keeping the ones a user can't change themselves (username, role, status).
     const { data } = await api.put(`/users/${auth.userId}`, {
       ...form.value,
+      // Empty optional fields go as null: the API rejects "" as a date.
+      date_of_birth: form.value.date_of_birth || null,
+      // Blank = keep the current password.
+      password: form.value.password || null,
+      current_password: form.value.password ? form.value.current_password : null,
       username: user.value.username,
       role_id: user.value.role_id,
       account_status: user.value.account_status,
     })
     user.value = data
     form.value.password = ''
+    form.value.current_password = ''
     auth.firstName = data.first_name
     auth.lastName = data.last_name
     auth.persist()
