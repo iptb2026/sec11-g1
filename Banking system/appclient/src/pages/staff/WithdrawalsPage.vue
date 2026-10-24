@@ -53,7 +53,7 @@
               filled
               readonly
             />
-            <q-input v-model="form.reference_number" :rules="[required]" lazy-rules label="Reference Number" filled />
+            <q-input v-model="form.reference_number" label="Reference Number" filled />
             <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled
               :readonly="!!editingId"
               :hint="editingId ? 'Account and amount cannot change. Delete it (which reverses it) and record a new one instead.' : ''"
@@ -90,7 +90,6 @@ import api from '@/services/api'
 import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
 import { required, positiveAmount } from '@/utils/validation'
-import { newReference } from '@/utils/reference'
 
 const $q = useQuasar()
 const canWrite = useCanWrite()
@@ -115,7 +114,7 @@ const accountHolderByAccountId = ref({})
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
-const emptyForm = () => ({ account_id: null, reference_number: newReference('WDR'), amount: null, withdrawal_channel: '', remarks: '' })
+const emptyForm = () => ({ account_id: null, reference_number: '', amount: null, withdrawal_channel: '', remarks: '' })
 const form = ref(emptyForm())
 
 const accountHolderName = computed(() => accountHolderByAccountId.value[form.value.account_id] || '')
@@ -187,13 +186,14 @@ function openEdit (row) {
 
 async function save () {
   try {
+    let saved
     if (editingId.value) {
-      await api.put(`/withdrawals/${editingId.value}`, form.value)
+      ({ data: saved } = await api.put(`/withdrawals/${editingId.value}`, form.value))
     } else {
-      await api.post('/withdrawals/', form.value)
+      ({ data: saved } = await api.post('/withdrawals/', form.value))
     }
     showDialog.value = false
-    $q.notify({ type: 'positive', message: 'Withdrawal saved' })
+    $q.notify({ type: 'positive', message: `Withdrawal ${saved.reference_number} saved` })
     loadRows()
   } catch (err) {
     $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })

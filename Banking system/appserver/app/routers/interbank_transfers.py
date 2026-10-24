@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_money
 from app.core.money import credit, debit, ensure_active, ensure_funds, ensure_minimum_balance, lock_account
+from app.core.references import resolve_reference
 from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
@@ -40,11 +41,9 @@ def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = D
     if not bank:
         raise HTTPException(status_code=400, detail="target_bank_id does not exist")
 
-    existing = db.query(InterbankTransfer).filter(
-        InterbankTransfer.reference_number == transfer.reference_number
-    ).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="reference_number already exists")
+    transfer.reference_number = resolve_reference(
+        db, InterbankTransfer.reference_number, transfer.reference_number, "IB", "reference_number"
+    )
 
     ensure_active(source, "send transfers")
 
