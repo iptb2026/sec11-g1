@@ -41,6 +41,7 @@ USERS = [
     ("admin", "System", "Administrator", "admin@minibank.com", "ADMIN"),
     ("teller1", "Maria", "Santos", "teller1@minibank.com", "STAFF"),
     ("jdelacruz", "Juan", "Dela Cruz", "jdelacruz@primebank.ph", "CUSTOMER"),
+    ("auditor1", "Ana", "Villanueva", "auditor1@minibank.com", "AUDITOR"),
 ]
 
 # (type_code, type_name, minimum_balance, opening_deposit, annual_interest_rate, daily_withdrawal_limit)
