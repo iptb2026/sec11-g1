@@ -30,11 +30,12 @@
           <q-card-section class="q-gutter-md">
             <q-input v-model="form.username" :rules="[required]" lazy-rules label="Username" filled />
             <q-input
-              v-model="form.password" :rules="[required]" lazy-rules
-              label="Password"
+              v-model="form.password" :rules="[editingId ? optionalPassword : password]" lazy-rules
+              :label="editingId ? 'New Password' : 'Password'"
               type="password"
+              autocomplete="new-password"
               filled
-              :hint="editingId ? 'Required to save: re-enter the current password or set a new one' : 'Hashed by the backend'"
+              :hint="editingId ? 'Leave blank to keep the current password (to change your own, use My Profile)' : 'At least 8 characters'"
             />
             <q-input v-model="form.email" :rules="[optionalEmail]" lazy-rules label="Email" filled />
             <q-input v-model="form.mobile_number" label="Mobile Number" filled />
@@ -75,7 +76,7 @@ import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
 import { useCanWrite } from '@/utils/permissions'
 import { errorMessage } from '@/utils/notify-error'
-import { required, optionalDate, optionalEmail } from '@/utils/validation'
+import { required, optionalDate, optionalEmail, optionalPassword, password } from '@/utils/validation'
 
 const $q = useQuasar()
 const canWrite = useCanWrite()
@@ -154,11 +155,18 @@ function openEdit (row) {
 }
 
 async function save () {
+  // Empty optional fields go as null: the API rejects "" as a date, and a
+  // blank password on edit means "keep the current one".
+  const payload = {
+    ...form.value,
+    date_of_birth: form.value.date_of_birth || null,
+    password: form.value.password || null,
+  }
   try {
     if (editingId.value) {
-      await api.put(`/users/${editingId.value}`, form.value)
+      await api.put(`/users/${editingId.value}`, payload)
     } else {
-      await api.post('/users/', form.value)
+      await api.post('/users/', payload)
     }
     showDialog.value = false
     $q.notify({ type: 'positive', message: 'User saved' })
