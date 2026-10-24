@@ -1,5 +1,5 @@
 # ==== LAYER 3: Account Configuration ====
-from sqlalchemy import Column, BigInteger, String, DECIMAL, Enum, TIMESTAMP, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, DECIMAL, Enum, TIMESTAMP, DateTime, ForeignKey, Index, CheckConstraint
 from sqlalchemy.sql import func
 
 from app.database.session import Base
@@ -7,8 +7,15 @@ from app.database.session import Base
 
 class Account(Base):
     __tablename__ = "accounts"
-    # Index behind the customer_id foreign key; already exists in the team database.
-    __table_args__ = (Index("idx_accounts_customer_id", "customer_id"),)
+    __table_args__ = (
+        # Index behind the customer_id foreign key; already exists in the team database.
+        Index("idx_accounts_customer_id", "customer_id"),
+        # Balance floor: MySQL itself refuses a negative balance, even from a bug
+        # or a manual UPDATE. The API turns the error into a 400 (commit_money).
+        # Added to existing databases by migration 0002_balance_checks.
+        CheckConstraint("available_balance >= 0", name="chk_accounts_available_balance"),
+        CheckConstraint("ledger_balance >= 0", name="chk_accounts_ledger_balance"),
+    )
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     account_number = Column(String(30), unique=True, nullable=False)
