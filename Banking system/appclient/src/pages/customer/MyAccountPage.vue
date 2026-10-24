@@ -1,52 +1,50 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="text-h5 q-mb-md">My Account</div>
-
-    <div v-if="loading" class="text-center q-pa-xl">
-      <q-spinner color="primary" size="40px" />
+  <q-page>
+    <div class="row items-center q-mb-md">
+      <div class="text-h5">My Accounts</div>
     </div>
 
-    <div v-else-if="accounts.length === 0" class="text-grey-7">
+    <div v-if="loading" class="row q-col-gutter-lg">
+      <div class="col-12 col-md-6"><q-skeleton height="240px" class="acc-skeleton" /></div>
+    </div>
+
+    <div v-else-if="accounts.length === 0" class="bank-card q-pa-lg text-grey-7">
       No account is registered under your profile yet. Ask a bank staff member to open one for you.
     </div>
 
-    <div v-else class="row q-col-gutter-md">
+    <div v-else class="row q-col-gutter-lg">
       <div v-for="acc in accounts" :key="acc.id" class="col-12 col-md-6">
-        <q-card bordered>
-          <q-card-section class="bg-primary text-white">
-            <div class="text-subtitle2">Account Number</div>
-            <div class="text-h6">{{ acc.account_number }}</div>
-          </q-card-section>
-          <q-card-section>
-            <div class="row q-col-gutter-md">
-              <div class="col-6">
-                <div class="text-caption text-grey-7">Available Balance</div>
-                <div class="text-h5 text-positive">₱{{ format(acc.available_balance) }}</div>
-              </div>
-              <div class="col-6">
-                <div class="text-caption text-grey-7">Ledger Balance</div>
-                <div class="text-h5">₱{{ format(acc.ledger_balance) }}</div>
-              </div>
+        <article class="acc">
+          <div class="acc-card bank-hero">
+            <div class="row items-center justify-between">
+              <span class="bank-eyebrow acc-card__muted">{{ acc.currency_code }} Account</span>
+              <q-icon name="contactless" size="22px" aria-hidden="true" />
             </div>
-            <q-separator class="q-my-sm" />
-            <div class="row q-col-gutter-sm text-body2">
-              <div class="col-6"><span class="text-grey-7">Currency:</span> {{ acc.currency_code }}</div>
-              <div class="col-6"><span class="text-grey-7">Branch:</span> {{ acc.branch_code || '—' }}</div>
-              <div class="col-6">
-                <span class="text-grey-7">Status:</span>
-                <q-badge :color="acc.status === 'ACTIVE' ? 'positive' : 'grey'">{{ acc.status }}</q-badge>
+            <div class="acc-card__chip" aria-hidden="true" />
+            <div class="acc-card__number tabular">{{ groupNumber(acc.account_number) }}</div>
+            <div class="row items-end justify-between">
+              <div>
+                <div class="acc-card__muted acc-card__label">Available balance</div>
+                <div class="acc-card__amount bank-amount">₱{{ format(acc.available_balance) }}</div>
               </div>
-              <div class="col-6"><span class="text-grey-7">Opened:</span> {{ acc.opened_at?.slice(0, 10) }}</div>
+              <q-badge :color="acc.status === 'ACTIVE' ? 'positive' : 'grey-7'">{{ acc.status }}</q-badge>
             </div>
-          </q-card-section>
-        </q-card>
+          </div>
+
+          <dl class="acc-details bank-card">
+            <div><dt>Ledger balance</dt><dd class="bank-amount">₱{{ format(acc.ledger_balance) }}</dd></div>
+            <div><dt>Branch</dt><dd>{{ acc.branch_code || '—' }}</dd></div>
+            <div><dt>Opened</dt><dd>{{ formatDate(acc.opened_at) }}</dd></div>
+            <div><dt>Account number</dt><dd class="tabular">{{ acc.account_number }}</dd></div>
+          </dl>
+        </article>
       </div>
     </div>
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -58,12 +56,86 @@ function format (val) {
   return Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-onMounted(async () => {
+// "1000000001" -> "1000 0000 01" like a card number; other formats are shown as they are.
+function groupNumber (num) {
+  const text = String(num)
+  return /^\d+$/.test(text) ? text.replace(/(\d{4})(?=\d)/g, '$1 ') : text
+}
+
+function formatDate (val) {
+  return val ? new Date(val).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'
+}
+
+async function loadAccounts () {
   try {
     const { data } = await api.get('/accounts/')
     accounts.value = data.filter((a) => a.customer_id === auth.userId)
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(loadAccounts)
 </script>
+
+<style scoped>
+.acc-skeleton {
+  border-radius: 20px;
+}
+
+.acc-card {
+  aspect-ratio: 1.7;
+  max-height: 260px;
+  width: 100%;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+}
+
+.acc-card__muted {
+  color: #CBD5E1;
+}
+
+.acc-card__chip {
+  width: 46px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #FDE68A, var(--bank-gold));
+}
+
+.acc-card__number {
+  font-size: 1.35rem;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+}
+
+.acc-card__label {
+  font-size: 0.75rem;
+}
+
+.acc-card__amount {
+  font-size: 1.9rem;
+  line-height: 1.15;
+}
+
+.acc-details {
+  margin: 14px 0 0;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 24px;
+}
+
+.acc-details dt {
+  font-size: 0.75rem;
+  color: var(--bank-muted);
+  font-weight: 500;
+}
+
+.acc-details dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+</style>

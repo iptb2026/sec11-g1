@@ -7,7 +7,8 @@ from pydantic import BaseModel
 
 
 class AccountCreate(BaseModel):
-    account_number: str
+    # Leave blank to let the server assign one (1000000000 + the account's id).
+    account_number: Optional[str] = None
     customer_id: int
     account_type_id: int
     currency_code: str = "PHP"

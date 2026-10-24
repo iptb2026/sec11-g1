@@ -1,5 +1,8 @@
 # ==== LAYER 3: Account Configuration ====
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
@@ -16,6 +19,18 @@ from app.schemas.account import AccountCreate, AccountUpdate, AccountOut
 router = APIRouter(prefix="/accounts", tags=["Layer 3 - Accounts"])
 
 
+ACCOUNT_NUMBER_BASE = 1000000000
+
+
+def account_number_for(account_id: int) -> str:
+    """
+    The account number for a new account: 1000000000 + its database id
+    (id 15 -> "1000000015"). MySQL hands out every id exactly once, so two
+    accounts opened at the same moment can never get the same number.
+    """
+    return str(ACCOUNT_NUMBER_BASE + account_id)
+
+
 def opening_reference(account: Account) -> str:
     return f"OPEN-{account.account_number}"
 
@@ -30,18 +45,33 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     if not account_type:
         raise HTTPException(status_code=400, detail="account_type_id does not exist")
 
-    existing = db.query(Account).filter(Account.account_number == account.account_number).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="account_number already exists")
+    typed_number = (account.account_number or "").strip()
+    if typed_number:
+        existing = db.query(Account).filter(Account.account_number == typed_number).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="account_number already exists")
 
     # The starting balance comes from the account type's opening_deposit —
     # never from the client. This is the same "don't trust the client with
     # money fields" lesson from AccountCreate in the old single-table version.
     starting_balance = account_type.opening_deposit
 
-    new_account = Account(**account.model_dump(), available_balance=0, ledger_balance=0)
+    data = account.model_dump()
+    # Blank account number: the number comes from the database id, which only
+    # exists after the insert. Insert with a unique placeholder first, then set
+    # the real number in the same transaction.
+    data["account_number"] = typed_number or f"PENDING-{uuid.uuid4().hex[:20]}"
+    new_account = Account(**data, available_balance=0, ledger_balance=0)
     db.add(new_account)
-    db.flush()  # gives new_account its id for the ledger row
+    db.flush()  # gives new_account its id for the account number and ledger row
+    if not typed_number:
+        new_account.account_number = account_number_for(new_account.id)
+        try:
+            db.flush()
+        except IntegrityError:
+            # Someone typed this exact number by hand earlier.
+            db.rollback()
+            raise HTTPException(status_code=409, detail="The generated account number is already taken; enter one manually")
     if starting_balance:
         # The opening deposit is the account's first ledger entry.
         credit(db, new_account, starting_balance, opening_reference(new_account), "DEPOSIT")

@@ -8,7 +8,7 @@
 
     <q-table :filter="search"
       :rows="groupedRows"
-      :columns="columns"
+      :columns="tableColumns(columns)"
       :row-key="rowKey"
       :loading="loading"
       flat
@@ -30,8 +30,8 @@
         <q-tr v-else :props="props">
           <q-td v-for="col in props.cols" :key="col.name" :props="props">
             <template v-if="col.name === 'actions'">
-              <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
-              <q-btn dense flat round icon="delete" color="negative" @click="removeRow(props.row)" />
+              <q-btn dense flat round icon="edit" aria-label="Edit" color="primary" @click="openEdit(props.row)" />
+              <q-btn dense flat round icon="delete" aria-label="Delete" color="negative" @click="removeRow(props.row)" />
             </template>
             <template v-else>{{ col.value }}</template>
           </q-td>
@@ -47,7 +47,18 @@
           </q-card-section>
 
           <q-card-section class="q-gutter-md">
-            <q-input v-model="form.account_number" :rules="[required]" lazy-rules label="Account Number" filled />
+            <!-- The account number is assigned by the backend (1000000000 + id); shown read-only when editing. -->
+            <q-input
+              v-if="editingId"
+              v-model="form.account_number"
+              label="Account Number"
+              filled
+              readonly
+            />
+            <div v-else class="account-number-note">
+              <q-icon name="auto_awesome" size="18px" />
+              The account number is assigned automatically when you save.
+            </div>
             <q-select
               v-model="form.customer_id" :rules="[required]" lazy-rules
               label="Customer"
@@ -81,6 +92,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
+import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
 import { errorMessage } from '@/utils/notify-error'
 import { required } from '@/utils/validation'
@@ -186,7 +198,13 @@ async function save () {
     if (editingId.value) {
       await api.put(`/accounts/${editingId.value}`, form.value)
     } else {
-      await api.post('/accounts/', form.value)
+      const body = { ...form.value }
+      delete body.account_number // assigned by the backend
+      const { data } = await api.post('/accounts/', body)
+      showDialog.value = false
+      $q.notify({ type: 'positive', message: `Account ${data.account_number} opened` })
+      loadRows()
+      return
     }
     showDialog.value = false
     $q.notify({ type: 'positive', message: 'Account saved' })
@@ -218,3 +236,17 @@ onMounted(() => {
   loadOptions()
 })
 </script>
+
+<style scoped>
+.account-number-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #EFF6FF;
+  color: #1E3A8A;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+</style>
