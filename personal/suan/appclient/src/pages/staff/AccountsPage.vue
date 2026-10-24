@@ -49,7 +49,6 @@
             filled
             readonly
             :loading="!editingId && !form.account_number"
-            :hint="editingId ? '' : 'Assigned automatically'"
           >
             <template #prepend><q-icon name="tag" /></template>
           </q-input>
