@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.db_utils import commit_money
 from app.core.money import credit, current_limit, debit, ensure_active, ensure_funds, lock_account, reject_money_edits
 from app.core.security import get_current_user, own_account_ids
+from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.user import User
 from app.models.withdrawal import Withdrawal
@@ -14,17 +15,12 @@ router = APIRouter(prefix="/withdrawals", tags=["Layer 4 - Withdrawals"])
 
 
 @router.post("/", response_model=WithdrawalOut, status_code=status.HTTP_201_CREATED)
-def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db)):
+def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Lock the account row for the duration of this transaction — without
     # this, two withdrawals submitted at nearly the same moment could both
     # read the same starting balance and one of their deductions would be
     # silently lost (a "lost update").
     account = lock_account(db, withdrawal.account_id)
-
-    if withdrawal.approved_by_user_id is not None:
-        user = db.query(User).filter(User.id == withdrawal.approved_by_user_id).first()
-        if not user:
-            raise HTTPException(status_code=400, detail="approved_by_user_id does not exist")
 
     existing = db.query(Withdrawal).filter(Withdrawal.reference_number == withdrawal.reference_number).first()
     if existing:
@@ -40,10 +36,12 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
     if limit and (limit.daily_used_amount + withdrawal.amount) > limit.daily_limit_amount:
         raise HTTPException(status_code=400, detail="This withdrawal would exceed the daily withdrawal limit")
 
-    new_withdrawal = Withdrawal(**withdrawal.model_dump())
+    # The date and who approved it come from the server, never the client.
+    now = utc_now()
+    new_withdrawal = Withdrawal(**withdrawal.model_dump(), transaction_date=now, approved_by_user_id=current_user.id)
     db.add(new_withdrawal)
 
-    debit(db, account, withdrawal.amount, withdrawal.reference_number, "WITHDRAWAL", withdrawal.transaction_date)
+    debit(db, account, withdrawal.amount, withdrawal.reference_number, "WITHDRAWAL", now)
     if limit:
         limit.daily_used_amount += withdrawal.amount
 

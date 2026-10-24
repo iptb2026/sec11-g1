@@ -7,23 +7,11 @@ from app.core.db_utils import commit_or_409
 from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.session import UserSession
-from app.models.user import User
-from app.schemas.session import SessionCreate, SessionOut
+from app.schemas.session import SessionOut
 
 router = APIRouter(prefix="/sessions", tags=["Layer 2 - Sessions"])
 
-
-@router.post("/", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
-def create_session(session_data: SessionCreate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == session_data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=400, detail="user_id does not exist")
-
-    new_session = UserSession(**session_data.model_dump())
-    db.add(new_session)
-    db.commit()
-    db.refresh(new_session)
-    return new_session
+# No POST here: a session row is created only by a real login (POST /auth/login).
 
 
 @router.get("/", response_model=list[SessionOut])

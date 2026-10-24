@@ -14,6 +14,17 @@ from app.schemas.user import UserCreate, UserOut, UserUpdate
 router = APIRouter(prefix="/users", tags=["Layer 2 - Users"])
 
 
+def is_last_active_admin(db: Session, user: User) -> bool:
+    """True when `user` is the only ACTIVE user with the ADMIN role."""
+    admin_role = db.query(Role).filter(Role.role_code == "ADMIN").first()
+    if not admin_role or user.role_id != admin_role.id or user.account_status != "ACTIVE":
+        return False
+    others = db.query(User).filter(
+        User.role_id == admin_role.id, User.account_status == "ACTIVE", User.id != user.id
+    ).count()
+    return others == 0
+
+
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED,
              dependencies=[roles_required(ADMIN_ONLY)])
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -71,13 +82,31 @@ def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_d
     # editing their own profile keeps their username, role and status.
     protected = set() if is_admin else {"username", "role_id", "account_status"}
     data = user_data.model_dump(exclude={"password"} | protected)
+
+    # Same uniqueness rules as create_user (otherwise the database refuses it with a 500).
+    taken = None
+    if "username" in data and data["username"] != user.username:
+        taken = User.username == data["username"]
+    if data.get("email") and data["email"] != user.email:
+        email_taken = User.email == data["email"]
+        taken = email_taken if taken is None else taken | email_taken
+    if taken is not None and db.query(User).filter(taken, User.id != user.id).first():
+        raise HTTPException(status_code=400, detail="username or email already in use")
+
+    # Never leave the bank without an active admin: nobody could manage users again.
+    if is_last_active_admin(db, user) and (
+        data.get("role_id", user.role_id) != user.role_id
+        or data.get("account_status", user.account_status) != "ACTIVE"
+    ):
+        raise HTTPException(status_code=409, detail="This is the last active admin; their role or status cannot change")
+
     for field, value in data.items():
         setattr(user, field, value)
     # Blank or missing password = keep the current one.
     if user_data.password:
         user.hashed_password = hash_password(user_data.password)
 
-    db.commit()
+    commit_or_409(db, "username or email already in use")
     db.refresh(user)
     return user
 
@@ -87,6 +116,8 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if is_last_active_admin(db, user):
+        raise HTTPException(status_code=409, detail="This is the last active admin and cannot be deleted")
 
     db.delete(user)
     commit_or_409(db, "Cannot delete this user — related sessions, accounts, or audit logs still reference it")

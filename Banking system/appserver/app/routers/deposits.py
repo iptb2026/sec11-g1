@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.db_utils import commit_money
 from app.core.money import credit, debit, ensure_active, ensure_funds, lock_account, reject_money_edits
 from app.core.security import get_current_user, own_account_ids
+from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.deposit import Deposit
 from app.models.user import User
@@ -14,16 +15,11 @@ router = APIRouter(prefix="/deposits", tags=["Layer 4 - Deposits"])
 
 
 @router.post("/", response_model=DepositOut, status_code=status.HTTP_201_CREATED)
-def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
+def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # lock_account() locks this account row until the commit below, so a
     # second request touching the same account has to wait its turn instead
     # of reading a stale balance and silently overwriting this change.
     account = lock_account(db, deposit.account_id)
-
-    if deposit.deposited_by_user_id is not None:
-        user = db.query(User).filter(User.id == deposit.deposited_by_user_id).first()
-        if not user:
-            raise HTTPException(status_code=400, detail="deposited_by_user_id does not exist")
 
     existing = db.query(Deposit).filter(Deposit.reference_number == deposit.reference_number).first()
     if existing:
@@ -32,11 +28,13 @@ def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
     # FROZEN and CLOSED accounts cannot receive deposits.
     ensure_active(account, "receive deposits")
 
-    new_deposit = Deposit(**deposit.model_dump())
+    # The date and who recorded it come from the server, never the client.
+    now = utc_now()
+    new_deposit = Deposit(**deposit.model_dump(), transaction_date=now, deposited_by_user_id=current_user.id)
     db.add(new_deposit)
 
     # This is the actual point of a deposit: money enters the account.
-    credit(db, account, deposit.amount, deposit.reference_number, "DEPOSIT", deposit.transaction_date)
+    credit(db, account, deposit.amount, deposit.reference_number, "DEPOSIT", now)
 
     commit_money(db)
     db.refresh(new_deposit)
@@ -64,7 +62,7 @@ def get_deposit(deposit_id: int, db: Session = Depends(get_db), current_user: Us
 @router.put("/{deposit_id}", response_model=DepositOut)
 def update_deposit(deposit_id: int, data: DepositCreate, db: Session = Depends(get_db)):
     """
-    Fixes the descriptive fields only (remarks, channel, date...). The amount
+    Fixes the descriptive fields only (reference, channel, remarks). The amount
     and the account cannot change: that would leave the balance wrong. Delete
     the deposit instead (which reverses it) and record a new one.
     """
