@@ -6,7 +6,7 @@
       <q-btn v-if="canWrite" color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns, canWrite)" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>

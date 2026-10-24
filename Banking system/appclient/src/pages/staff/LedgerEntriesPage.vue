@@ -5,7 +5,7 @@
     </div>
 
     <!-- Read-only: the backend writes a ledger row for every balance change. -->
-    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" flat bordered>
+    <q-table :filter="search" :rows="rows" :columns="tableColumns(columns)" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" flat bordered>
       <template #top-right>
         <q-input v-model="search" dense clearable placeholder="Search">
           <template #append><q-icon name="search" /></template>

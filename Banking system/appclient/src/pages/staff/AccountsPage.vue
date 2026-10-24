@@ -21,6 +21,10 @@
           <template #append><q-icon name="search" /></template>
         </q-input>
       </template>
+      <!-- The default "1-6 of 6" would count the customer-name rows too. -->
+      <template #pagination>
+        {{ rows.length }} account{{ rows.length === 1 ? '' : 's' }}
+      </template>
       <template v-slot:body="props">
         <q-tr v-if="props.row.isGroupHeader" :key="props.row.key">
           <q-td colspan="100%" class="bg-grey-2 text-weight-bold">
