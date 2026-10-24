@@ -5,6 +5,11 @@ import { defineConfig } from '#q-app'
 
 export default defineConfig((/* ctx */) => {
   return {
+    // Path to IDE executables (Windows)
+    bin: {
+      windowsAndroidStudio: 'C:\\android\\bin\\studio64.exe'
+    },
+
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
 
@@ -66,7 +71,9 @@ export default defineConfig((/* ctx */) => {
     devServer: {
       // vueDevtools: true,
       // https: true,
-      open: true // opens browser window automatically
+      host: '0.0.0.0', // Expose on all interfaces — required for Capacitor/Android live reload
+      port: 9000,       // Quasar dev server port (the Android app will connect here for live reload)
+      open: false       // Don't auto-open browser; we're using Android Studio instead
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

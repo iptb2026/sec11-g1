@@ -101,7 +101,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { api, defaultBanks } from '@/services/api'
+import { api } from '@/services/api'
 
 const $q = useQuasar()
 const items = ref([])
@@ -141,9 +141,9 @@ async function loadItems() {
   loading.value = true
   try {
     const data = await api.banks.list()
-    items.value = Array.isArray(data) && data.length > 0 ? data : defaultBanks
-  } catch {
-    items.value = defaultBanks
+    items.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to load banks: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -164,17 +164,22 @@ function openEditDialog(item) {
 async function saveItem() {
   saving.value = true
   try {
+    const payload = {
+      bank_code: form.value.bank_code,
+      swift_code: form.value.swift_code || null,
+      bank_name: form.value.bank_name,
+      short_name: form.value.short_name || null,
+      api_endpoint: form.value.api_endpoint || null,
+      contact_email: form.value.contact_email || null,
+      status: form.value.status || 'ACTIVE'
+    }
     if (isEditing.value) {
-      const updated = await api.banks.update(form.value.id, form.value).catch(() => ({ ...form.value }))
+      const updated = await api.banks.update(form.value.id, payload)
       const idx = items.value.findIndex(i => i.id === form.value.id)
       if (idx !== -1) items.value[idx] = { ...items.value[idx], ...updated }
       $q.notify({ type: 'positive', message: 'Bank updated', position: 'top' })
     } else {
-      const created = await api.banks.create(form.value).catch(() => ({
-        id: items.value.length > 0 ? Math.max(...items.value.map(i => i.id)) + 1 : 1,
-        ...form.value,
-        created_at: new Date().toISOString()
-      }))
+      const created = await api.banks.create(payload)
       items.value.push(created)
       $q.notify({ type: 'positive', message: 'Bank created', position: 'top' })
     }
@@ -195,10 +200,12 @@ async function executeDelete() {
   if (!itemToDelete.value) return
   deleting.value = true
   try {
-    await api.banks.delete(itemToDelete.value.id).catch(() => {})
+    await api.banks.delete(itemToDelete.value.id)
     items.value = items.value.filter(i => i.id !== itemToDelete.value.id)
     $q.notify({ type: 'positive', message: 'Bank deleted', position: 'top' })
     deleteDialogOpen.value = false
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err.message || 'Delete error', position: 'top' })
   } finally {
     deleting.value = false
   }

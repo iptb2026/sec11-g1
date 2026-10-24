@@ -165,10 +165,10 @@ async function refreshData() {
     const banks = await api.banks.list()
 
     metrics.value = {
-      roles: roles?.length || 4,
-      users: users?.length || 3,
-      accounts: accounts?.length || 2,
-      banks: banks?.length || 3
+      roles: Array.isArray(roles) ? roles.length : 0,
+      users: Array.isArray(users) ? users.length : 0,
+      accounts: Array.isArray(accounts) ? accounts.length : 0,
+      banks: Array.isArray(banks) ? banks.length : 0
     }
   } catch (err) {
     console.error('Error refreshing metrics:', err)

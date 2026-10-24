@@ -1,67 +1,58 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 
+from app.core.config import settings
+from app.core.security import check_password, create_access_token, oauth2_scheme
 from app.database.session import get_db
-from app.models.user import User
-from app.models.role import Role
 from app.models.session import UserSession
-from app.core.security import verify_password, generate_token
+from app.models.user import User
+from app.schemas.auth import Token
 
 router = APIRouter(prefix="/auth", tags=["Layer 2 - Auth"])
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+@router.post("/login", response_model=Token)
+def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not check_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user.account_status != "ACTIVE":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active")
 
+    token = create_access_token(user.username)
+    expires_at = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-class LoginResponse(BaseModel):
-    token: str
-    user_id: int
-    username: str
-    role: str
-
-
-@router.post("/login", response_model=LoginResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == payload.username).first()
-    if not user or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-
-    role = db.query(Role).filter(Role.id == user.role_id).first()
-
-    token = generate_token()
-    session = UserSession(
+    new_session = UserSession(
         user_id=user.id,
         jwt_token=token,
-        expires_at=datetime.utcnow() + timedelta(hours=8),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        expires_at=expires_at,
     )
-    db.add(session)
+    db.add(new_session)
+    user.last_login_at = datetime.utcnow()
     db.commit()
 
-    return LoginResponse(token=token, user_id=user.id, username=user.username, role=role.role_code)
+    return Token(access_token=token)
 
 
-@router.post("/logout")
-def logout(authorization: str = Header(...), db: Session = Depends(get_db)):
-    token = authorization.replace("Bearer ", "")
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     session = db.query(UserSession).filter(UserSession.jwt_token == token).first()
-    if session:
-        session.revoked_at = datetime.utcnow()
-        db.commit()
-    return {"status": "logged out"}
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
 
+    session.revoked_at = datetime.utcnow()
+    db.commit()
 
-@router.get("/me", response_model=LoginResponse)
-def me(authorization: str = Header(...), db: Session = Depends(get_db)):
-    token = authorization.replace("Bearer ", "")
-    session = db.query(UserSession).filter(UserSession.jwt_token == token).first()
-    if not session or session.expires_at < datetime.utcnow() or session.revoked_at is not None:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
-
-    user = db.query(User).filter(User.id == session.user_id).first()
-    role = db.query(Role).filter(Role.id == user.role_id).first()
-    return LoginResponse(token=token, user_id=user.id, username=user.username, role=role.role_code)

@@ -1,6 +1,7 @@
 # ==== LAYER 1: Foundation & Reference Data ====
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
 from app.core.db_utils import commit_or_409
 from app.database.session import get_db
 from app.models.account_type import AccountType
@@ -14,6 +15,7 @@ def create_account_type(account_type: AccountTypeCreate, db: Session = Depends(g
     existing = db.query(AccountType).filter(AccountType.type_code == account_type.type_code).first()
     if existing:
         raise HTTPException(status_code=400, detail="type_code already exists")
+
     new_account_type = AccountType(**account_type.model_dump())
     db.add(new_account_type)
     db.commit()
@@ -39,8 +41,16 @@ def update_account_type(account_type_id: int, data: AccountTypeCreate, db: Sessi
     account_type = db.query(AccountType).filter(AccountType.id == account_type_id).first()
     if not account_type:
         raise HTTPException(status_code=404, detail="Account type not found")
+
+    duplicate = db.query(AccountType).filter(
+        AccountType.type_code == data.type_code, AccountType.id != account_type_id
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=400, detail="type_code already exists")
+
     for field, value in data.model_dump().items():
         setattr(account_type, field, value)
+
     db.commit()
     db.refresh(account_type)
     return account_type
@@ -51,5 +61,6 @@ def delete_account_type(account_type_id: int, db: Session = Depends(get_db)):
     account_type = db.query(AccountType).filter(AccountType.id == account_type_id).first()
     if not account_type:
         raise HTTPException(status_code=404, detail="Account type not found")
+
     db.delete(account_type)
     commit_or_409(db, "Cannot delete this account type — one or more accounts still reference it")

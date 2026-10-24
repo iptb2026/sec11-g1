@@ -1,0 +1,467 @@
+/* ==========================================================================
+   Mini Banking System — "modern banking" theme
+   Design system from UI/UX Pro Max: Banking/Traditional Finance palette
+   (trust navy + premium gold), Financial Dashboard style, IBM Plex Sans.
+   Shared styles for every page; Quasar brand colours are in quasar.config.js.
+   ========================================================================== */
+
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-sans/700.css';
+
+:root {
+  --bank-navy-950: #020617;
+  --bank-navy-900: #0F172A;
+  --bank-navy-800: #172554;
+  --bank-blue-800: #1E3A8A;
+  --bank-blue-600: #2563EB;
+  --bank-gold: #CA8A04;
+  --bank-gold-light: #FACC15;
+  --bank-gold-text: #A16207;   /* gold that passes 4.5:1 on white */
+  --bank-bg: #F8FAFC;
+  --bank-surface: #FFFFFF;
+  --bank-border: #E2E8F0;
+  --bank-text: #0F172A;
+  --bank-muted: #475569;       /* slate-600: lightest allowed body text */
+  --bank-credit: #15803D;
+  --bank-debit: #B91C1C;
+  --bank-radius: 14px;
+  --bank-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.06);
+  --bank-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.08), 0 10px 28px rgba(15, 23, 42, 0.12);
+}
+
+/* --- Base --------------------------------------------------------------- */
+body,
+.q-field,
+.q-btn,
+.q-table,
+.q-item,
+.q-notification {
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  background: var(--bank-bg);
+  color: var(--bank-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Money and IDs line up in columns */
+.q-table td,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-h4, .text-h5, .text-h6 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--bank-text);
+}
+
+.text-grey-7, .text-caption {
+  color: var(--bank-muted) !important;
+}
+
+/* Visible keyboard focus everywhere (a11y) */
+.q-btn:focus-visible,
+.q-item:focus-visible,
+a:focus-visible,
+.bank-card--link:focus-visible {
+  outline: 2px solid var(--bank-blue-600);
+  outline-offset: 2px;
+}
+
+/* --- Pages ---------------------------------------------------------------- */
+.q-page {
+  padding: 28px 32px !important;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1023px) {
+  .q-page {
+    padding: 20px !important;
+  }
+}
+
+@media (max-width: 599px) {
+  .q-page {
+    padding: 16px !important;
+  }
+}
+
+/* The title row every CRUD page starts with: "<Title> ........ [+ New]" */
+.q-page > .row.items-center.q-mb-md:first-child,
+.q-page > .text-h5.q-mb-md:first-child {
+  margin-bottom: 20px !important;
+}
+
+.q-page > .row.items-center.q-mb-md:first-child > .text-h5,
+.q-page > .text-h5.q-mb-md:first-child,
+.bank-page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* --- Buttons -------------------------------------------------------------- */
+.q-btn {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.q-btn.bg-primary:not(.q-btn--flat) {
+  box-shadow: 0 1px 2px rgba(30, 58, 138, 0.25);
+}
+
+.q-btn.bg-primary:not(.q-btn--flat):hover {
+  box-shadow: 0 6px 16px rgba(30, 58, 138, 0.28);
+}
+
+.q-btn--round {
+  border-radius: 50%;
+}
+
+/* --- Cards ---------------------------------------------------------------- */
+.q-card {
+  border-radius: var(--bank-radius);
+}
+
+.q-card--bordered {
+  border-color: var(--bank-border);
+  box-shadow: var(--bank-shadow);
+}
+
+/* --- Tables (all admin/staff pages) --------------------------------------- */
+.q-table__card {
+  border-radius: var(--bank-radius);
+  background: var(--bank-surface);
+}
+
+.q-table--bordered {
+  border-color: var(--bank-border);
+  box-shadow: var(--bank-shadow);
+}
+
+.q-table thead tr {
+  background: #F1F5F9;
+}
+
+.q-table th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bank-muted);
+}
+
+.q-table tbody td {
+  font-size: 0.9rem;
+  height: 52px;
+}
+
+/* Fit the table to the screen instead of scrolling sideways: cells may wrap
+   (names, emails), tighter side padding, money/dates stay on one line. */
+.q-table th,
+.q-table td {
+  white-space: normal;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.q-table th:first-child,
+.q-table td:first-child {
+  padding-left: 18px;
+}
+
+/* Wrap only between words (never mid-word); long emails may still break. */
+.q-table td {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+
+.q-table td.bank-cell-money {
+  white-space: nowrap;
+  font-weight: 600;
+  overflow-wrap: normal;
+}
+
+.q-table td.bank-cell-ref {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+}
+
+.q-table td.bank-cell-date {
+  min-width: 104px;
+  white-space: pre-line;
+  line-height: 1.35;
+  overflow-wrap: normal;
+  color: var(--bank-muted);
+  font-size: 0.85rem;
+}
+
+/* Smaller screens: compact cells, and the plain row-number ID column is hidden */
+@media (max-width: 1023px) {
+  .q-table th,
+  .q-table td {
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 0.82rem;
+  }
+
+  .q-table th {
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+  }
+
+  .q-table td.bank-cell-ref {
+    font-size: 0.76rem;
+  }
+
+  .q-table td.bank-cell-date {
+    min-width: 76px;
+    font-size: 0.78rem;
+  }
+
+  .q-table .bank-cell-id {
+    display: none;
+  }
+
+  .q-table td .q-btn--dense.q-btn--round {
+    padding: 2px;
+  }
+}
+
+/* Action buttons stay side by side */
+.q-table td:last-child {
+  white-space: nowrap;
+}
+
+.q-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.q-table tbody tr:hover > td {
+  background: #F8FAFF;
+}
+
+.q-table--horizontal-separator tbody tr:not(:last-child) > td,
+.q-table--cell-separator tbody tr:not(:last-child) > td,
+.q-table tbody td {
+  border-color: #EEF2F7;
+}
+
+.q-table__bottom {
+  color: var(--bank-muted);
+  border-color: var(--bank-border);
+}
+
+/* Phones: each row becomes a small card with one "LABEL ...... value" line per
+   column, so amounts and buttons never sit off-screen. The labels come from
+   the column headers (data-label, set by boot/table-labels.js). */
+@media (max-width: 599px) {
+  .q-table thead {
+    display: none;
+  }
+
+  .q-table,
+  .q-table tbody,
+  .q-table tbody tr,
+  .q-table tbody td {
+    display: block;
+    width: 100%;
+  }
+
+  .q-table tbody tr {
+    height: auto;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bank-border);
+  }
+
+  .q-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .q-table tbody td,
+  .q-table tbody td:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    height: auto;
+    min-height: 34px;
+    padding: 4px 16px;
+    border: 0;
+    text-align: right;
+    font-size: 0.88rem;
+  }
+
+  .q-table tbody td.bank-cell-id {
+    display: none;
+  }
+
+  /* Quasar uses td:before for the hover shade (and blanks it on hover in a
+     desktop browser); here it holds the label, pushing the value right. */
+  .q-table tbody td[data-label]:not([colspan])::before {
+    content: attr(data-label) !important;
+    position: static;
+    flex: none;
+    margin-right: auto;
+    background: none !important;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bank-muted);
+  }
+
+  .q-table td.bank-cell-date {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  /* Grouping rows (e.g. the customer name on Accounts) span the whole card. */
+  .q-table tbody td[colspan] {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .q-table__top {
+    padding: 12px 16px;
+  }
+
+  .q-table__top .q-input {
+    width: 100%;
+  }
+}
+
+/* Status badges read like pills */
+.q-badge {
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+/* --- Dialogs & forms ------------------------------------------------------ */
+.q-dialog .q-card {
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+}
+
+.q-dialog .q-card > .q-card__section:first-child .text-h6 {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.q-dialog .q-card__actions {
+  padding: 12px 20px 20px;
+}
+
+.q-field--filled .q-field__control {
+  border-radius: 10px;
+  background: #F1F5F9;
+}
+
+.q-field--filled .q-field__control:before {
+  border-bottom: none;
+}
+
+.q-field--filled.q-field--highlighted .q-field__control {
+  background: #EEF2FF;
+}
+
+.q-field--outlined .q-field__control {
+  border-radius: 10px;
+}
+
+/* --- Notifications ------------------------------------------------------- */
+.q-notification {
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* --- Shared banking pieces ---------------------------------------------- */
+.bank-card {
+  background: var(--bank-surface);
+  border: 1px solid var(--bank-border);
+  border-radius: var(--bank-radius);
+  box-shadow: var(--bank-shadow);
+}
+
+.bank-card--link {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.bank-card--link:hover {
+  border-color: #C7D2FE;
+  box-shadow: var(--bank-shadow-hover);
+}
+
+/* Dark navy panel with a frosted-glass layer (balance cards, login hero) */
+.bank-hero {
+  position: relative;
+  overflow: hidden;
+  color: #F8FAFC;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(37, 99, 235, 0.55) 0%, rgba(37, 99, 235, 0) 55%),
+    radial-gradient(90% 120% at 0% 100%, rgba(202, 138, 4, 0.28) 0%, rgba(202, 138, 4, 0) 50%),
+    linear-gradient(135deg, var(--bank-navy-900) 0%, var(--bank-navy-800) 100%);
+  border-radius: 20px;
+}
+
+.bank-glass {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 16px;
+}
+
+.bank-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bank-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.text-credit { color: var(--bank-credit) !important; }
+.text-debit { color: var(--bank-debit) !important; }
+.text-gold { color: var(--bank-gold-text) !important; }
+
+.bank-icon-tile {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

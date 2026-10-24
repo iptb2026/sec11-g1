@@ -67,7 +67,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { api, defaultUsers } from '@/services/api'
+import { api } from '@/services/api'
 
 const $q = useQuasar()
 const items = ref([])
@@ -103,9 +103,9 @@ async function loadItems() {
   loading.value = true
   try {
     const data = await api.users.list()
-    items.value = Array.isArray(data) && data.length > 0 ? data : defaultUsers
-  } catch {
-    items.value = defaultUsers
+    items.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to load users: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -127,15 +127,12 @@ async function saveItem() {
   saving.value = true
   try {
     if (isEditing.value) {
-      const updated = await api.users.update(form.value.id, form.value).catch(() => ({ ...form.value }))
+      const updated = await api.users.update(form.value.id, form.value)
       const idx = items.value.findIndex(i => i.id === form.value.id)
       if (idx !== -1) items.value[idx] = { ...items.value[idx], ...updated }
       $q.notify({ type: 'positive', message: 'User updated', position: 'top' })
     } else {
-      const created = await api.users.create(form.value).catch(() => ({
-        id: items.value.length > 0 ? Math.max(...items.value.map(i => i.id)) + 1 : 1,
-        ...form.value
-      }))
+      const created = await api.users.create(form.value)
       items.value.push(created)
       $q.notify({ type: 'positive', message: 'User created', position: 'top' })
     }
@@ -156,10 +153,12 @@ async function executeDelete() {
   if (!itemToDelete.value) return
   deleting.value = true
   try {
-    await api.users.delete(itemToDelete.value.id).catch(() => {})
+    await api.users.delete(itemToDelete.value.id)
     items.value = items.value.filter(i => i.id !== itemToDelete.value.id)
     $q.notify({ type: 'positive', message: 'User deleted', position: 'top' })
     deleteDialogOpen.value = false
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err.message || 'Failed to delete user', position: 'top' })
   } finally {
     deleting.value = false
   }

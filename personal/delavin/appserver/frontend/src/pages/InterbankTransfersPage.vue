@@ -81,17 +81,18 @@ const columns = [
   { name: 'source_account_id', label: 'Source Account', align: 'left', field: 'source_account_id', sortable: true },
   { name: 'target_bank_id', label: 'Target Bank', align: 'left', field: row => bankOptions.find(b => b.value === row.target_bank_id)?.label || `Bank #${row.target_bank_id}` },
   { name: 'target_account_number', label: 'Target Acc #', align: 'left', field: 'target_account_number' },
-  { name: 'amount', label: 'Amount', align: 'left', field: 'amount', sortable: true },
+  { name: 'amount', label: 'Amount', align: 'left', field: row => `₱${Number(row.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sortable: true },
   { name: 'status', label: 'Status', align: 'left', field: 'status', sortable: true },
-  { name: 'created_at', label: 'Date/Time', align: 'left', field: 'created_at', sortable: true }
+  { name: 'created_at', label: 'Date/Time', align: 'left', field: row => new Date(row.initiated_at || row.created_at).toLocaleString(), sortable: true }
 ]
 
 async function loadItems() {
   loading.value = true
   try {
-    items.value = await api.interbankTransfers.list()
-  } catch {
-    items.value = []
+    const data = await api.interbankTransfers.list()
+    items.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to load interbank transfers: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -100,18 +101,18 @@ async function loadItems() {
 async function processTransfer() {
   saving.value = true
   try {
+    const refNum = `IBT-${Date.now().toString().slice(-6)}`
     const payload = {
-      ...form.value,
-      reference_number: `IBT-${Date.now().toString().slice(-6)}`,
-      status: 'COMPLETED'
+      source_account_id: Number(form.value.source_account_id),
+      target_bank_id: Number(form.value.target_bank_id),
+      target_account_number: form.value.target_account_number,
+      reference_number: refNum,
+      amount: form.value.amount,
+      transfer_fee: '0.00'
     }
-    const res = await api.interbankTransfers.create(payload).catch(() => ({
-      id: items.value.length + 1,
-      ...payload,
-      created_at: new Date().toISOString()
-    }))
+    const res = await api.interbankTransfers.create(payload)
     items.value.unshift(res)
-    $q.notify({ type: 'positive', message: 'Interbank transfer processed', position: 'top' })
+    $q.notify({ type: 'positive', message: 'Interbank transfer processed successfully', position: 'top' })
     dialogOpen.value = false
   } catch (err) {
     $q.notify({ type: 'negative', message: err.message || 'Transfer failed', position: 'top' })

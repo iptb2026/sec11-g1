@@ -58,7 +58,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { api, defaultFeeTypes } from '@/services/api'
+import { api } from '@/services/api'
 
 const $q = useQuasar()
 const items = ref([])
@@ -77,7 +77,7 @@ const columns = [
   { name: 'id', label: 'ID', align: 'left', field: 'id', sortable: true, style: 'width: 70px' },
   { name: 'fee_code', label: 'Code', align: 'left', field: 'fee_code', sortable: true },
   { name: 'fee_name', label: 'Name', align: 'left', field: 'fee_name', sortable: true },
-  { name: 'amount', label: 'Fee Amount', align: 'left', field: 'amount', sortable: true },
+  { name: 'amount', label: 'Fee Amount', align: 'left', field: row => `₱${Number(row.fixed_amount ?? row.amount ?? 0).toFixed(2)}`, sortable: true },
   { name: 'actions', label: 'Actions', align: 'right', field: 'actions', style: 'width: 120px' }
 ]
 
@@ -85,9 +85,9 @@ async function loadItems() {
   loading.value = true
   try {
     const data = await api.feeTypes.list()
-    items.value = Array.isArray(data) && data.length > 0 ? data : defaultFeeTypes
-  } catch {
-    items.value = defaultFeeTypes
+    items.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to load fee types: ' + err.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -101,23 +101,31 @@ function openCreateDialog() {
 
 function openEditDialog(item) {
   isEditing.value = true
-  form.value = { ...item }
+  form.value = {
+    id: item.id,
+    fee_code: item.fee_code,
+    fee_name: item.fee_name,
+    amount: item.fixed_amount ?? item.amount ?? '0.00'
+  }
   dialogOpen.value = true
 }
 
 async function saveItem() {
   saving.value = true
   try {
+    const payload = {
+      fee_code: form.value.fee_code,
+      fee_name: form.value.fee_name,
+      fixed_amount: form.value.amount || '0.00',
+      percentage_rate: '0.00'
+    }
     if (isEditing.value) {
-      const updated = await api.feeTypes.update(form.value.id, form.value).catch(() => ({ ...form.value }))
+      const updated = await api.feeTypes.update(form.value.id, payload)
       const idx = items.value.findIndex(i => i.id === form.value.id)
       if (idx !== -1) items.value[idx] = { ...items.value[idx], ...updated }
       $q.notify({ type: 'positive', message: 'Fee type updated', position: 'top' })
     } else {
-      const created = await api.feeTypes.create(form.value).catch(() => ({
-        id: items.value.length > 0 ? Math.max(...items.value.map(i => i.id)) + 1 : 1,
-        ...form.value
-      }))
+      const created = await api.feeTypes.create(payload)
       items.value.push(created)
       $q.notify({ type: 'positive', message: 'Fee type created', position: 'top' })
     }
@@ -138,10 +146,12 @@ async function executeDelete() {
   if (!itemToDelete.value) return
   deleting.value = true
   try {
-    await api.feeTypes.delete(itemToDelete.value.id).catch(() => {})
+    await api.feeTypes.delete(itemToDelete.value.id)
     items.value = items.value.filter(i => i.id !== itemToDelete.value.id)
     $q.notify({ type: 'positive', message: 'Deleted successfully', position: 'top' })
     deleteDialogOpen.value = false
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err.message || 'Delete failed', position: 'top' })
   } finally {
     deleting.value = false
   }
