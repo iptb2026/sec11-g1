@@ -136,7 +136,8 @@ async function loadRows () {
   loading.value = true
   try {
     const { data } = await api.get('/deposits/')
-    rows.value = data
+    // Newest first: a higher id is a later deposit (the server sets the date).
+    rows.value = [...data].sort((a, b) => b.id - a.id)
   } catch (err) {
     $q.notify({ type: 'negative', message: errorMessage(err, 'Failed to load data') })
   } finally {

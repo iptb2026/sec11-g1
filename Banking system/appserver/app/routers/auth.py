@@ -7,17 +7,48 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import remember_request_user
 from app.core.config import settings
+from app.core.db_utils import commit_or_409
 from app.core.login_guard import check_not_blocked, record_failure, record_success
-from app.core.security import check_password, create_token, get_current_user, oauth2_scheme
+from app.core.security import check_password, create_token, get_current_user, hash_password, oauth2_scheme
 from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.role import Role
 from app.models.session import UserSession
 from app.models.user import User
-from app.schemas.auth import MeOut, Token
+from app.schemas.auth import MeOut, RegisterIn, Token
 from app.schemas.user import UserOut
 
 router = APIRouter(prefix="/auth", tags=["Layer 2 - Auth"])
+
+
+@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+def register(data: RegisterIn, request: Request, db: Session = Depends(get_db)):
+    """
+    Public sign-up for customers (no login needed). The new user is always an
+    ACTIVE CUSTOMER; a bank account is still opened for them by staff.
+    """
+    customer_role = db.query(Role).filter(Role.role_code == "CUSTOMER").first()
+    if not customer_role:
+        raise HTTPException(status_code=503, detail="Sign-up is not available: the CUSTOMER role is missing (run seed.py)")
+
+    # Same uniqueness rules as POST /users/.
+    taken = User.username == data.username
+    if data.email:
+        taken = taken | (User.email == data.email)
+    if db.query(User).filter(taken).first():
+        raise HTTPException(status_code=400, detail="username or email already in use")
+
+    remember_request_user(db, None, request)  # nobody is logged in; the audit row keeps the IP and device
+    new_user = User(
+        **data.model_dump(exclude={"password"}),
+        hashed_password=hash_password(data.password),
+        role_id=customer_role.id,
+        account_status="ACTIVE",
+    )
+    db.add(new_user)
+    commit_or_409(db, "username or email already in use")
+    db.refresh(new_user)
+    return new_user
 
 
 @router.post("/login", response_model=Token)

@@ -47,7 +47,9 @@
             </div>
 
             <h2>Welcome back</h2>
-            <p class="login-form__lead">Sign in to your account to continue.</p>
+            <p class="login-form__lead">
+              {{ CUSTOMERS_ONLY ? 'Customers: sign in to see your accounts and transactions.' : 'Sign in to your account to continue.' }}
+            </p>
 
             <q-form class="login-fields" @submit="onSubmit">
               <q-input
@@ -97,6 +99,19 @@
               />
             </q-form>
 
+            <div class="login-form__signup">
+              <span>New to {{ BANK_NAME }}?</span>
+              <q-btn
+                outline
+                no-caps
+                color="primary"
+                label="Sign up"
+                icon="person_add"
+                to="/signup"
+                class="full-width login-signup"
+              />
+            </div>
+
             <p class="login-form__hint">Five wrong passwords in a row lock sign-in for 15 minutes.</p>
             <div class="login-form__secure">
               <q-icon name="lock" size="16px" />
@@ -113,6 +128,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth-store'
+import { CUSTOMERS_ONLY } from '@/utils/app-mode'
 
 // The bank's name, shown on this page. Change it here (and in MainLayout.vue).
 const BANK_NAME = 'Tipon'
@@ -336,6 +352,20 @@ async function onSubmit () {
   background: var(--tipon-bad-tint);
   color: var(--bank-debit);
   border: 1.5px solid var(--bank-debit);
+}
+
+.login-form__signup {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--bank-muted);
+}
+
+.login-signup {
+  height: 46px;
+  border-width: 1.5px;
 }
 
 .login-form__hint {

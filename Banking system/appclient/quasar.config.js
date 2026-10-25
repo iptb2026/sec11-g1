@@ -3,7 +3,7 @@
 
 import { defineConfig } from '#q-app'
 
-export default defineConfig((/* ctx */) => {
+export default defineConfig((ctx) => {
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
@@ -46,8 +46,10 @@ export default defineConfig((/* ctx */) => {
       // filenameBasedRouting: true,
 
        vueRouterMode: 'hash', // available values: 'hash', 'history'
-       vueRouterBase: '/catarig-wui/',
-       publicPath: '/catarig-wui/',
+       // The web app is served at /catarig-wui/ (nginx); the Android app
+       // (Capacitor) serves its files from the root.
+       vueRouterBase: ctx.mode.capacitor ? '' : '/catarig-wui/',
+       publicPath: ctx.mode.capacitor ? '' : '/catarig-wui/',
       // define: {},
       // defineEnv: {}
       // ignorePublicFolder: true,

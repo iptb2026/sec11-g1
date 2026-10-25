@@ -3,6 +3,11 @@ const routes = [
     path: '/login',
     component: () => import('@/pages/LoginPage.vue'),
   },
+  {
+    // Public customer sign-up (POST /auth/register)
+    path: '/signup',
+    component: () => import('@/pages/SignUpPage.vue'),
+  },
 
   {
     path: '/',
