@@ -139,6 +139,7 @@ const OPERATIONS_LINKS = [
 
 const CUSTOMER_LINKS = [
   { to: '/my-account', label: 'My Accounts', icon: 'credit_card' },
+  { to: '/send-money', label: 'Send Money', icon: 'send' },
   { to: '/my-transactions', label: 'Transactions', icon: 'receipt_long' },
 ]
 

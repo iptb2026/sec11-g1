@@ -20,7 +20,9 @@ from app.models.user import User
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Tells FastAPI where users log in to get a token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# Relative (no leading "/"), so the /docs "Authorize" button also works behind
+# nginx, where the API lives under /catarig/ (uvicorn --root-path /catarig).
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # --- PASSWORD FUNCTIONS ---
