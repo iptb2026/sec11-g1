@@ -11,7 +11,7 @@ from decimal import Decimal
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.timeutil import utc_now
+from app.core.timeutil import philippine_today, utc_now
 from app.models.account import Account
 from app.models.account_type import AccountType
 from app.models.ledger_entry import LedgerEntry
@@ -93,7 +93,7 @@ def current_limit(db: Session, account: Account) -> WithdrawalLimit | None:
     "daily" limit would really be a lifetime limit.
     """
     limit = db.query(WithdrawalLimit).filter(WithdrawalLimit.account_id == account.id).with_for_update().first()
-    today = utc_now().date()
+    today = philippine_today()  # the day starts at midnight Philippine time
     if limit and limit.last_reset_date < today:
         limit.daily_used_amount = ZERO
         limit.last_reset_date = today

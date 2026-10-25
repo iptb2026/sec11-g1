@@ -6,7 +6,7 @@ from app.core.db_utils import commit_money
 from app.core.money import credit, current_limit, debit, ensure_active, ensure_funds, ensure_minimum_balance, lock_account, reject_money_edits
 from app.core.references import resolve_reference
 from app.core.security import get_current_user, own_account_ids
-from app.core.timeutil import utc_now
+from app.core.timeutil import to_philippine_time, utc_now
 from app.database.session import get_db
 from app.models.user import User
 from app.models.withdrawal import Withdrawal
@@ -108,7 +108,7 @@ def delete_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
     credit(db, account, withdrawal.amount, withdrawal.reference_number, "REVERSAL")
 
     limit = current_limit(db, account)
-    if limit and withdrawal.transaction_date.date() == limit.last_reset_date:
+    if limit and to_philippine_time(withdrawal.transaction_date).date() == limit.last_reset_date:
         limit.daily_used_amount = max(limit.daily_used_amount - withdrawal.amount, 0)
 
     db.delete(withdrawal)

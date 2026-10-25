@@ -98,6 +98,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth-store'
+import { TIME_ZONE, manilaHour } from '@/utils/time'
 
 const auth = useAuthStore()
 const loading = ref(true)
@@ -106,9 +107,10 @@ const myAccounts = ref([])
 const totalHeld = ref(0)
 const accountCount = ref(0)
 
-const hour = new Date().getHours()
+// Philippine time, whatever the device's own time zone.
+const hour = manilaHour()
 const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
-const today = new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+const today = new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: TIME_ZONE })
 
 const subtitle = computed(() => {
   if (auth.isCustomer) return 'Here is a summary of your money.'

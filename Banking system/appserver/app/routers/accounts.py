@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.db_utils import commit_or_409
 from app.core.money import credit
 from app.core.security import get_current_user, own_account_ids
-from app.core.timeutil import utc_now
+from app.core.timeutil import philippine_today, utc_now
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.account_type import AccountType
@@ -83,7 +83,7 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
         db.add(WithdrawalLimit(
             account_id=new_account.id,
             daily_limit_amount=account_type.daily_withdrawal_limit,
-            last_reset_date=utc_now().date(),
+            last_reset_date=philippine_today(),
         ))
     db.commit()
     db.refresh(new_account)
