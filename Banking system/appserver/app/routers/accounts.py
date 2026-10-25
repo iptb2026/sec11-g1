@@ -47,33 +47,26 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     if not account_type:
         raise HTTPException(status_code=400, detail="account_type_id does not exist")
 
-    typed_number = (account.account_number or "").strip()
-    if typed_number:
-        existing = db.query(Account).filter(Account.account_number == typed_number).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="account_number already exists")
-
     # The starting balance comes from the account type's opening_deposit —
     # never from the client. This is the same "don't trust the client with
     # money fields" lesson from AccountCreate in the old single-table version.
     starting_balance = account_type.opening_deposit
 
     data = account.model_dump()
-    # Blank account number: the number comes from the database id, which only
-    # exists after the insert. Insert with a unique placeholder first, then set
-    # the real number in the same transaction.
-    data["account_number"] = typed_number or f"PENDING-{uuid.uuid4().hex[:20]}"
+    # The number comes from the database id, which only exists after the
+    # insert. Insert with a unique placeholder first, then set the real number
+    # in the same transaction.
+    data["account_number"] = f"PENDING-{uuid.uuid4().hex[:20]}"
     new_account = Account(**data, available_balance=0, ledger_balance=0)
     db.add(new_account)
     db.flush()  # gives new_account its id for the account number and ledger row
-    if not typed_number:
-        new_account.account_number = account_number_for(new_account.id)
-        try:
-            db.flush()
-        except IntegrityError:
-            # Someone typed this exact number by hand earlier.
-            db.rollback()
-            raise HTTPException(status_code=409, detail="The generated account number is already taken; enter one manually")
+    new_account.account_number = account_number_for(new_account.id)
+    try:
+        db.flush()
+    except IntegrityError:
+        # An older account was renumbered by hand (PUT) to this exact number.
+        db.rollback()
+        raise HTTPException(status_code=409, detail="The generated account number is already taken by another account")
     if starting_balance:
         # The opening deposit is the account's first ledger entry.
         credit(db, new_account, starting_balance, opening_reference(new_account), "DEPOSIT")

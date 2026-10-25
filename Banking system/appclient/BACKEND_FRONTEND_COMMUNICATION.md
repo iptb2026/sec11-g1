@@ -429,7 +429,7 @@ application code automatically, not typed by a human in a dialog).
 
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/accounts/` | Validates `customer_id`/`account_type_id` FKs, unique `account_number`. **`available_balance`/`ledger_balance` are server-computed** from `account_type.opening_deposit` — the client never sends a starting balance (`AccountCreate` has no balance fields at all). |
+| POST | `/accounts/` | Validates `customer_id`/`account_type_id` FKs. **`account_number` is always server-assigned** (1000000000 + the id); a number in the request is ignored. **`available_balance`/`ledger_balance` are server-computed** from `account_type.opening_deposit` — the client never sends a starting balance (`AccountCreate` has no balance fields at all). |
 | GET | `/accounts/`, `/accounts/{id}` | — |
 | PUT | `/accounts/{id}` | Uses a *different* schema, `AccountUpdate` (adds `status`), so status changes go through the same endpoint as everything else; auto-sets `closed_at` when status transitions to `CLOSED`. |
 | DELETE | `/accounts/{id}` | `commit_or_409` |
