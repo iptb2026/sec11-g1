@@ -46,6 +46,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import api from '@/services/api'
+import { TIME_ZONE, parseApiDateTime } from '@/utils/time'
 
 const accounts = ref([])
 const loading = ref(true)
@@ -61,7 +62,8 @@ function groupNumber (num) {
 }
 
 function formatDate (val) {
-  return val ? new Date(val).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'
+  // The API sends UTC; show the day in Philippine time.
+  return val ? parseApiDateTime(val).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric', timeZone: TIME_ZONE }) : '—'
 }
 
 async function loadAccounts () {

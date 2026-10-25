@@ -49,7 +49,7 @@ Need `>= 22.12` (also `^24` or `>= 26`).
 ### 1.2 Install dependencies
 
 ```bash
-cd appserver/frontend
+cd "Banking system/appclient"
 npm install
 ```
 
@@ -93,13 +93,16 @@ Opens `http://localhost:9000` — you should land on the login page.
 
 ## 2. Demo Login
 
-| Username    | Password | Role     | Sees                                   |
-|-------------|----------|----------|------------------------------------------|
-| `admin`     | `1234`   | ADMIN    | Full nav: system config + all banking operations |
-| `mgarcia`   | `1234`   | STAFF    | Banking operations only, no system config |
-| `jdelacruz` | `1234`   | CUSTOMER | My Account + My Transactions only |
+Every demo login uses the password `password123`.
 
-Seed users through the backend first (see `../demomanual/layer_1.md`–`layer_2.md`).
+| Username    | Role     | Sees                                   |
+|-------------|----------|------------------------------------------|
+| `admin`     | ADMIN    | Full nav: system config + all banking operations |
+| `teller1`   | STAFF    | Banking operations only, no system config |
+| `auditor1`  | AUDITOR  | Admin and operations pages, read-only (no New/Edit/Delete) |
+| `lmercado`, `preyes`, `jdelacruz` | CUSTOMER | Dashboard, My Accounts, Transactions, My Profile |
+
+The users come from `appserver/seed.py` and `appserver/demo_data.py` (see `../database/README.md`). New customers can also create their own login with **Sign up** on the login page.
 
 ## 3. How Role-Based Access Works
 

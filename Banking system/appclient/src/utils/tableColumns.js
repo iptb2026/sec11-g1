@@ -1,3 +1,5 @@
+import { TIME_ZONE, parseApiDateTime } from '@/utils/time'
+
 // Shared column clean-up for every q-table, so tables fit the screen without
 // sideways scrolling: readable dates and money, and no internal ID columns
 // when the account number/name is already shown.
@@ -23,14 +25,15 @@ export function formatDate (val) {
   if (!val) return '—'
   const text = String(val)
   if (DATE_ONLY.test(text)) {
-    return new Date(text + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+    // A calendar date (no time): shown as is, never shifted by a time zone.
+    return new Date(text + 'T00:00:00Z').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
   }
-  // The API sends UTC without a timezone; mark it as UTC so it shows in local time.
-  const date = new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(text) ? text : text + 'Z')
+  // The API sends UTC; show it in Philippine time.
+  const date = parseApiDateTime(text)
   if (Number.isNaN(date.getTime())) return text
   // Date and time on separate lines (the cell uses white-space: pre-line).
-  const day = date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
-  const time = date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })
+  const day = date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: TIME_ZONE })
+  const time = date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', timeZone: TIME_ZONE })
   return `${day}\n${time}`
 }
 

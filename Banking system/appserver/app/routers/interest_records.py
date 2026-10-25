@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.db_utils import commit_money
 from app.core.money import credit, debit, lock_account
 from app.core.security import get_current_user, own_account_ids
-from app.core.timeutil import utc_now
+from app.core.timeutil import philippine_today
 from app.database.session import get_db
 from app.models.interest_policy import InterestPolicy
 from app.models.interest_record import InterestRecord
@@ -39,7 +39,7 @@ def create_interest_record(record: InterestRecordCreate, db: Session = Depends(g
         raise HTTPException(status_code=400, detail="policy_id does not exist")
     if policy.account_type_id != account.account_type_id:
         raise HTTPException(status_code=400, detail="This interest policy is for a different account type")
-    today = utc_now().date()
+    today = philippine_today()
     if policy.effective_date > today or (policy.expiration_date and policy.expiration_date < today):
         raise HTTPException(status_code=400, detail="This interest policy is not in effect today")
 

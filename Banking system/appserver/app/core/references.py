@@ -1,5 +1,5 @@
 """
-Auto-generated transaction reference numbers: PREFIX + MMDDYYYY + 4 random digits.
+Auto-generated transaction reference numbers: PREFIX + MMDDYYYY (Philippine date) + 4 random digits.
 
     DP102420264821   deposit
     WD102420260317   withdrawal
@@ -15,14 +15,16 @@ from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.timeutil import utc_now
+from app.core.timeutil import to_philippine_time, utc_now
 
 
 def generate_reference(db: Session, column, prefix: str, when: Optional[datetime] = None) -> str:
     """Returns a reference not yet used in `column` (e.g. Deposit.reference_number)."""
-    when = when or utc_now()
+    # The date part is the Philippine date (times are stored in UTC, which is
+    # 8 hours behind: before 8 AM it would still be "yesterday").
+    day = to_philippine_time(when or utc_now())
     while True:
-        reference = f"{prefix}{when:%m%d%Y}{secrets.randbelow(10000):04d}"
+        reference = f"{prefix}{day:%m%d%Y}{secrets.randbelow(10000):04d}"
         if not db.query(column).filter(column == reference).first():
             return reference
 
