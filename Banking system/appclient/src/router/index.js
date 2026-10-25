@@ -8,6 +8,7 @@ import {
 
 import routes from './routes.js'
 import { useAuthStore } from '@/stores/auth-store'
+import { CUSTOMERS_ONLY } from '@/utils/app-mode'
 
 /*
  * If not building with SSR mode, you can
@@ -33,11 +34,18 @@ export default defineRouter((/* { store, ssrContext } */) => {
     history: createHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE)
   })
 
-  Router.beforeEach((to) => {
+  Router.beforeEach(async (to) => {
     const auth = useAuthStore()
 
-    if (to.path === '/login') {
-      // Already logged in? Skip the login page.
+    // Android app: customers only. A staff/admin/auditor still signed in from
+    // before (e.g. an older version of the app) is signed out on the server too.
+    if (CUSTOMERS_ONLY && auth.isAuthenticated && !auth.isCustomer) {
+      await auth.logout()
+      return to.path === '/login' ? true : '/login'
+    }
+
+    if (to.path === '/login' || to.path === '/signup') {
+      // Already logged in? Skip the login and sign-up pages.
       return auth.isAuthenticated ? '/' : true
     }
 

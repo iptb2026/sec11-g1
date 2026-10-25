@@ -359,3 +359,37 @@ No dev server needed — re-run `npm run build` to update the deployed copy.
 | Page reload loop through Nginx | Trailing-slash mismatch | Fix per §6.2 — frontend `proxy_pass` needs no trailing slash |
 | `502 Bad Gateway` | Nothing listening on the proxied port | Check dev server is running on the port `proxy_pass` expects (§6.4) |
 | `nginx -t` syntax error | Typo — usually a missing `;` or `{`/`}` | Fix the reported line, re-run `nginx -t` before reloading |
+
+---
+
+## 8. Android App (customers only)
+
+The same app, built for Android with Capacitor (`src-capacitor/`, app id `com.tipon.bank`). As the instructor asked, **only customers can sign in to it**: staff, admins and auditors are refused with a message and use the web app (see `src/utils/app-mode.js`). The web app is not affected.
+
+### 8.1 Build the debug APK
+
+Needs the Android SDK and **Java 21** (Android Studio's own Java 25 is too new for this project's Gradle 8.14). On Windows, PowerShell:
+
+```powershell
+cd "Banking system\appclient"
+npx quasar build -m capacitor -T android --skip-pkg      # builds the web part and copies it into Android
+$env:JAVA_HOME = "$env:USERPROFILE\.jdks\jbr-21.0.11"    # any Java 21
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+cd src-capacitor\android
+.\gradlew.bat assembleDebug
+```
+
+The APK is `src-capacitor\android\app\build\outputs\apk\debug\app-debug.apk`. (Quasar can't run Gradle itself here because of the space in "Banking system", so run it as above.)
+
+### 8.2 Install it on a phone over USB
+
+Turn on **USB debugging** on the phone, plug it in, accept the "Allow USB debugging?" prompt, then:
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb devices                       # the phone must show as "device"
+& $adb reverse tcp:8000 tcp:8000     # the phone's 127.0.0.1:8000 -> this PC's nginx/backend
+& $adb install -r src-capacitor\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+The app calls the backend at the `.env` address (`http://127.0.0.1:8000/catarig/`), which `adb reverse` forwards through the cable. Run `adb reverse` again after re-plugging the phone. Sign in as a customer (for example `lmercado` / `password123`), or tap **Sign up** to create a new customer.

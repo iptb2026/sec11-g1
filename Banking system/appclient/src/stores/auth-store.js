@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
+import { CUSTOMERS_ONLY, CUSTOMERS_ONLY_MESSAGE } from '@/utils/app-mode'
 
 const STORAGE_KEY = 'bank_auth'
 
@@ -62,6 +63,13 @@ export const useAuthStore = defineStore('auth', {
       // GET /auth/me returns the logged-in user and their role. (Customers
       // can't read the full user or role lists, so don't fetch those here.)
       const { data: me } = await api.get('/auth/me')
+
+      // Android app: customers only. End the session just opened on the
+      // server so it doesn't linger, then refuse with a clear message.
+      if (CUSTOMERS_ONLY && me.role_code !== 'CUSTOMER') {
+        await this.logout()
+        throw new Error(CUSTOMERS_ONLY_MESSAGE)
+      }
 
       this.userId = me.id
       this.username = me.username
