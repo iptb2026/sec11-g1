@@ -27,7 +27,7 @@
       </template>
       <template v-slot:body="props">
         <q-tr v-if="props.row.isGroupHeader" :key="props.row.key">
-          <q-td colspan="100%" class="bg-grey-2 text-weight-bold">
+          <q-td colspan="100%" class="bank-group-row text-weight-bold">
             <q-icon name="person" class="q-mr-sm" />{{ props.row.groupLabel }}
           </q-td>
         </q-tr>

@@ -224,7 +224,7 @@ onMounted(loadCards)
 }
 
 .dash-balance__label {
-  color: #CBD5E1;
+  color: #C4D3CD;
 }
 
 .dash-balance__amount {
@@ -234,7 +234,7 @@ onMounted(loadCards)
 }
 
 .dash-balance__meta {
-  color: #CBD5E1;
+  color: #C4D3CD;
   font-size: 0.9rem;
 }
 
@@ -283,12 +283,12 @@ onMounted(loadCards)
 }
 
 /* Icon tile tones */
-.dash-tile--blue { background: #EFF6FF; color: #1D4ED8; }
-.dash-tile--green { background: #ECFDF5; color: var(--bank-credit); }
-.dash-tile--red { background: #FEF2F2; color: var(--bank-debit); }
-.dash-tile--gold { background: #FEFCE8; color: var(--bank-gold-text); }
-.dash-tile--navy { background: #EEF2FF; color: var(--bank-blue-800); }
-.dash-tile--slate { background: #F1F5F9; color: #334155; }
+.dash-tile--blue { background: var(--tipon-sea-tint); color: var(--tipon-sea); }
+.dash-tile--green { background: var(--tipon-sea-tint); color: var(--bank-credit); }
+.dash-tile--red { background: var(--tipon-bad-tint); color: var(--bank-debit); }
+.dash-tile--gold { background: var(--tipon-mango-tint); color: var(--bank-gold-text); }
+.dash-tile--navy { background: var(--tipon-ink-tint); color: var(--tipon-ink); }
+.dash-tile--slate { background: var(--bank-bg); color: var(--bank-muted); }
 
 /* Quick actions */
 .dash-actions {
@@ -311,6 +311,6 @@ onMounted(loadCards)
 }
 
 .dash-action:hover {
-  background: #F1F5F9;
+  background: var(--bank-bg);
 }
 </style>

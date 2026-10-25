@@ -284,7 +284,7 @@ onMounted(async () => {
   justify-content: center;
 }
 
-.tx-tile--in { background: #ECFDF5; color: var(--bank-credit); }
-.tx-tile--out { background: #FEF2F2; color: var(--bank-debit); }
-.tx-tile--count { background: #EFF6FF; color: #1D4ED8; }
+.tx-tile--in { background: var(--tipon-sea-tint); color: var(--bank-credit); }
+.tx-tile--out { background: var(--tipon-bad-tint); color: var(--bank-debit); }
+.tx-tile--count { background: var(--tipon-ink-tint); color: var(--tipon-ink); }
 </style>

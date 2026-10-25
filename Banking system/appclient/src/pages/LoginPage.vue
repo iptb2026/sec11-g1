@@ -2,19 +2,20 @@
   <q-layout view="lHh Lpr lFf">
     <q-page-container>
       <q-page class="login-page">
-        <!-- Brand panel -->
+        <!-- Brand panel (Tipon style: ink panel, mango accents, water band) -->
         <section class="login-hero bank-hero" aria-hidden="true">
           <div class="login-hero__brand">
             <div class="login-hero__mark"><q-icon name="account_balance" size="24px" /></div>
-            <span>Mini Bank</span>
+            <span>{{ BANK_NAME }}</span>
           </div>
 
           <div class="login-hero__copy">
-            <h1>Banking you can trust, from anywhere.</h1>
+            <h1>Savings you can see, share and trust.</h1>
             <p>Manage accounts, deposits, transfers and records in one secure place.</p>
           </div>
 
-          <div class="login-card bank-glass">
+          <div class="login-card">
+            <div class="login-card__water" />
             <div class="row items-center justify-between">
               <span class="bank-eyebrow">Savings Account</span>
               <q-icon name="contactless" size="22px" />
@@ -26,7 +27,7 @@
                 <div class="login-card__label">Available balance</div>
                 <div class="login-card__amount bank-amount">₱ ••••••</div>
               </div>
-              <span class="login-card__brand">MINI BANK</span>
+              <span class="login-card__brand">{{ BANK_NAME.toUpperCase() }}</span>
             </div>
           </div>
 
@@ -42,7 +43,7 @@
           <div class="login-form">
             <div class="login-form__mobile-brand lt-md">
               <div class="login-hero__mark"><q-icon name="account_balance" size="22px" /></div>
-              <span>Mini Bank</span>
+              <span>{{ BANK_NAME }}</span>
             </div>
 
             <h2>Welcome back</h2>
@@ -96,9 +97,10 @@
               />
             </q-form>
 
+            <p class="login-form__hint">Five wrong passwords in a row lock sign-in for 15 minutes.</p>
             <div class="login-form__secure">
               <q-icon name="lock" size="16px" />
-              Your connection to Mini Bank is protected.
+              Your connection to {{ BANK_NAME }} is protected.
             </div>
           </div>
         </section>
@@ -111,6 +113,9 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth-store'
+
+// The bank's name, shown on this page. Change it here (and in MainLayout.vue).
+const BANK_NAME = 'Tipon'
 
 const username = ref('')
 const password = ref('')
@@ -154,14 +159,13 @@ async function onSubmit () {
   background: var(--bank-bg);
 }
 
-/* --- Brand panel --- */
+/* --- Brand panel (Tipon ink, with the water band from .bank-hero) --- */
 .login-hero {
   margin: 16px;
   padding: 40px 48px;
   display: flex;
   flex-direction: column;
   gap: 32px;
-  border-radius: 24px;
 }
 
 .login-hero__brand,
@@ -169,52 +173,76 @@ async function onSubmit () {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-weight: 700;
-  font-size: 1.15rem;
+  font-family: var(--tipon-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
 }
 
 .login-hero__mark {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--bank-navy-900);
-  background: linear-gradient(135deg, var(--bank-gold-light), var(--bank-gold));
+  color: var(--tipon-ink);
+  background: var(--tipon-mango);
 }
 
 .login-hero__copy h1 {
-  font-size: clamp(1.9rem, 3vw, 2.6rem);
-  line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: var(--tipon-display);
+  font-size: clamp(2rem, 3.2vw, 2.9rem);
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   margin: 24px 0 12px;
-  max-width: 16ch;
+  max-width: 15ch;
 }
 
 .login-hero__copy p {
   font-size: 1.05rem;
-  color: #CBD5E1;
+  color: #C4D3CD;
   max-width: 42ch;
   margin: 0;
 }
 
+/* The card: a flat Tipon panel on the ink, part-filled with "water" like the
+   pocket jars in the design. */
 .login-card {
+  position: relative;
+  overflow: hidden;
   width: min(100%, 380px);
   aspect-ratio: 1.6;
   padding: 22px 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 30px 60px rgba(2, 6, 23, 0.45);
+  color: #F7FAF8;
+  background: #1C2D4F;
+  border: 1.5px solid rgba(196, 211, 205, 0.28);
+  border-radius: var(--bank-radius);
+}
+
+.login-card > *:not(.login-card__water) {
+  position: relative;
+}
+
+.login-card__water {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 38%;
+  background: linear-gradient(var(--tipon-water), var(--tipon-sea));
+  opacity: 0.55;
 }
 
 .login-card__chip {
   width: 44px;
   height: 32px;
   border-radius: 7px;
-  background: linear-gradient(135deg, #FDE68A, var(--bank-gold));
+  background: var(--tipon-mango);
 }
 
 .login-card__number {
@@ -225,18 +253,19 @@ async function onSubmit () {
 
 .login-card__label {
   font-size: 0.72rem;
-  color: #CBD5E1;
+  color: #E6EEF0;
 }
 
 .login-card__amount {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
 }
 
 .login-card__brand {
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  font-size: 0.8rem;
-  color: var(--bank-gold-light);
+  font-family: var(--tipon-display);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-size: 0.85rem;
+  color: var(--tipon-mango);
 }
 
 .login-hero__points {
@@ -245,7 +274,7 @@ async function onSubmit () {
   margin: auto 0 0;
   display: grid;
   gap: 10px;
-  color: #E2E8F0;
+  color: #E6EEF0;
 }
 
 .login-hero__points li {
@@ -255,7 +284,7 @@ async function onSubmit () {
 }
 
 .login-hero__points .q-icon {
-  color: var(--bank-gold-light);
+  color: var(--tipon-mango);
   font-size: 20px;
 }
 
@@ -273,11 +302,12 @@ async function onSubmit () {
 }
 
 .login-form h2 {
-  font-size: 1.9rem;
-  font-weight: 700;
+  font-family: var(--tipon-display);
+  font-size: 2.1rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
   margin: 0 0 6px;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .login-form__lead {
@@ -303,13 +333,20 @@ async function onSubmit () {
 }
 
 .login-error {
-  background: #FEF2F2;
+  background: var(--tipon-bad-tint);
   color: var(--bank-debit);
-  border: 1px solid #FECACA;
+  border: 1.5px solid var(--bank-debit);
+}
+
+.login-form__hint {
+  margin: 1rem 0 0;
+  color: var(--bank-muted);
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 .login-form__secure {
-  margin-top: 24px;
+  margin-top: 8px;
   display: flex;
   align-items: center;
   justify-content: center;

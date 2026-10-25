@@ -1,34 +1,48 @@
 /* ==========================================================================
-   Mini Banking System — "modern banking" theme
-   Design system from UI/UX Pro Max: Banking/Traditional Finance palette
-   (trust navy + premium gold), Financial Dashboard style, IBM Plex Sans.
-   Shared styles for every page; Quasar brand colours are in quasar.config.js.
+   Tipon — the bank's look (design by Mordeno, tipon-bank.html)
+   Sage background, teal "sea", navy ink, mango accent; flat bordered panels.
+   Bricolage Grotesque for headings and big numbers, Figtree for text.
+   Shared styles for every page; Quasar brand colours are in quasar.config.js
+   (keep them matching the values below).
    ========================================================================== */
 
-@import '@fontsource/ibm-plex-sans/400.css';
-@import '@fontsource/ibm-plex-sans/500.css';
-@import '@fontsource/ibm-plex-sans/600.css';
-@import '@fontsource/ibm-plex-sans/700.css';
+@import '@fontsource/figtree/400.css';
+@import '@fontsource/figtree/600.css';
+@import '@fontsource/bricolage-grotesque/500.css';
+@import '@fontsource/bricolage-grotesque/800.css';
 
 :root {
-  --bank-navy-950: #020617;
-  --bank-navy-900: #0F172A;
-  --bank-navy-800: #172554;
-  --bank-blue-800: #1E3A8A;
-  --bank-blue-600: #2563EB;
-  --bank-gold: #CA8A04;
-  --bank-gold-light: #FACC15;
-  --bank-gold-text: #A16207;   /* gold that passes 4.5:1 on white */
-  --bank-bg: #F8FAFC;
-  --bank-surface: #FFFFFF;
-  --bank-border: #E2E8F0;
-  --bank-text: #0F172A;
-  --bank-muted: #475569;       /* slate-600: lightest allowed body text */
-  --bank-credit: #15803D;
-  --bank-debit: #B91C1C;
+  /* Tipon palette */
+  --tipon-ink: #14213D;
+  --tipon-sea: #1F7A6D;
+  --tipon-water: #5DB8A6;
+  --tipon-mango: #F2B632;
+  --tipon-bad: #B93A4B;
+  --tipon-sea-tint: #DCEFEA;    /* soft fills behind sea / ink / mango / bad icons */
+  --tipon-ink-tint: #E1E6EF;
+  --tipon-mango-tint: #FBEFD0;
+  --tipon-bad-tint: #F6E1E4;
+  --tipon-display: 'Bricolage Grotesque', system-ui, sans-serif;
+
+  /* The names every page uses, now in Tipon colours */
+  --bank-navy-950: #0E1A1F;
+  --bank-navy-900: #14213D;     /* ink */
+  --bank-navy-800: #1C2D4F;
+  --bank-blue-800: #1F7A6D;     /* sea */
+  --bank-blue-600: #1F7A6D;
+  --bank-gold: #F2B632;         /* mango */
+  --bank-gold-light: #F2B632;
+  --bank-gold-text: #7A5600;    /* mango dark enough for text: 4.5:1 on the panels */
+  --bank-bg: #E8EFEC;           /* sage page background */
+  --bank-surface: #F7FAF8;      /* panel */
+  --bank-border: #C4D3CD;       /* line */
+  --bank-text: #14213D;
+  --bank-muted: #56667A;
+  --bank-credit: #1F7A6D;       /* money in = sea */
+  --bank-debit: #B93A4B;        /* money out = bad */
   --bank-radius: 14px;
-  --bank-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.06);
-  --bank-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.08), 0 10px 28px rgba(15, 23, 42, 0.12);
+  --bank-shadow: none;          /* Tipon panels are flat: a border, no shadow */
+  --bank-shadow-hover: 0 0 0 1.5px var(--tipon-sea);
 }
 
 /* --- Base --------------------------------------------------------------- */
@@ -38,13 +52,13 @@ body,
 .q-table,
 .q-item,
 .q-notification {
-  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: Figtree, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 body {
   background: var(--bank-bg);
   color: var(--bank-text);
-  line-height: 1.55;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -54,9 +68,16 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Headings and big numbers in Bricolage Grotesque */
+.text-h4, .text-h5, .text-h6,
+.bank-page-title,
+.bank-amount {
+  font-family: var(--tipon-display);
+}
+
 .text-h4, .text-h5, .text-h6 {
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--bank-text);
 }
 
@@ -69,7 +90,7 @@ body {
 .q-item:focus-visible,
 a:focus-visible,
 .bank-card--link:focus-visible {
-  outline: 2px solid var(--bank-blue-600);
+  outline: 3px solid var(--tipon-mango);
   outline-offset: 2px;
 }
 
@@ -101,9 +122,10 @@ a:focus-visible,
 .q-page > .row.items-center.q-mb-md:first-child > .text-h5,
 .q-page > .text-h5.q-mb-md:first-child,
 .bank-page-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  line-height: 1.25;
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 /* --- Buttons -------------------------------------------------------------- */
@@ -111,17 +133,18 @@ a:focus-visible,
   text-transform: none;
   font-weight: 600;
   letter-spacing: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
 }
 
-.q-btn.bg-primary:not(.q-btn--flat) {
-  box-shadow: 0 1px 2px rgba(30, 58, 138, 0.25);
+/* Tipon buttons are flat: no drop shadow */
+.q-btn:not(.q-btn--flat):not(.q-btn--outline) {
+  box-shadow: none;
 }
 
-.q-btn.bg-primary:not(.q-btn--flat):hover {
-  box-shadow: 0 6px 16px rgba(30, 58, 138, 0.28);
+.q-btn:not(.q-btn--flat):not(.q-btn--outline):before {
+  box-shadow: none;
 }
 
 .q-btn--round {
@@ -133,8 +156,12 @@ a:focus-visible,
   border-radius: var(--bank-radius);
 }
 
+.q-card {
+  background: var(--bank-surface);
+}
+
 .q-card--bordered {
-  border-color: var(--bank-border);
+  border: 1.5px solid var(--bank-border);
   box-shadow: var(--bank-shadow);
 }
 
@@ -145,12 +172,12 @@ a:focus-visible,
 }
 
 .q-table--bordered {
-  border-color: var(--bank-border);
+  border: 1.5px solid var(--bank-border);
   box-shadow: var(--bank-shadow);
 }
 
 .q-table thead tr {
-  background: #F1F5F9;
+  background: var(--bank-bg);
 }
 
 .q-table th {
@@ -251,13 +278,13 @@ a:focus-visible,
 }
 
 .q-table tbody tr:hover > td {
-  background: #F8FAFF;
+  background: #EEF5F2;
 }
 
 .q-table--horizontal-separator tbody tr:not(:last-child) > td,
 .q-table--cell-separator tbody tr:not(:last-child) > td,
 .q-table tbody td {
-  border-color: #EEF2F7;
+  border-color: var(--bank-border);
 }
 
 .q-table__bottom {
@@ -356,13 +383,14 @@ a:focus-visible,
 
 /* --- Dialogs & forms ------------------------------------------------------ */
 .q-dialog .q-card {
-  border-radius: 18px;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+  border-radius: var(--bank-radius);
+  border: 1.5px solid var(--bank-border);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
 .q-dialog .q-card > .q-card__section:first-child .text-h6 {
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
 }
 
 .q-dialog .q-card__actions {
@@ -370,32 +398,63 @@ a:focus-visible,
 }
 
 .q-field--filled .q-field__control {
-  border-radius: 10px;
-  background: #F1F5F9;
+  border-radius: 8px;
+  background: var(--bank-bg);
+  border: 1.5px solid var(--bank-border);
 }
 
-.q-field--filled .q-field__control:before {
+.q-field--filled .q-field__control:before,
+.q-field--filled .q-field__control:after {
   border-bottom: none;
 }
 
+/* Quasar shades filled fields from :before; Tipon fields stay one flat colour */
+.q-field--filled .q-field__control:before {
+  background: transparent;
+}
+
 .q-field--filled.q-field--highlighted .q-field__control {
-  background: #EEF2FF;
+  background: var(--bank-bg);
+  border-color: var(--tipon-sea);
+  box-shadow: 0 0 0 2px var(--tipon-mango);
+}
+
+.q-field--filled.q-field--readonly .q-field__control {
+  background: var(--bank-surface);
+  border-style: dashed;
+}
+
+/* Quasar adds its own dashed underline to read-only fields; the dashed
+   border above already says "read-only". */
+.q-field--filled.q-field--readonly .q-field__control:before,
+.q-field--filled.q-field--readonly .q-field__control:after {
+  border: none;
 }
 
 .q-field--outlined .q-field__control {
-  border-radius: 10px;
+  border-radius: 8px;
+  background: var(--bank-bg);
+}
+
+.q-field--outlined .q-field__control:before {
+  border: 1.5px solid var(--bank-border);
+}
+
+.q-field--outlined.q-field--highlighted .q-field__control:after {
+  border-color: var(--tipon-sea);
 }
 
 /* --- Notifications ------------------------------------------------------- */
 .q-notification {
-  border-radius: 12px;
-  font-weight: 500;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
 /* --- Shared banking pieces ---------------------------------------------- */
 .bank-card {
   background: var(--bank-surface);
-  border: 1px solid var(--bank-border);
+  border: 1.5px solid var(--bank-border);
   border-radius: var(--bank-radius);
   box-shadow: var(--bank-shadow);
 }
@@ -406,28 +465,35 @@ a:focus-visible,
 }
 
 .bank-card--link:hover {
-  border-color: #C7D2FE;
+  border-color: var(--tipon-sea);
   box-shadow: var(--bank-shadow-hover);
 }
 
-/* Dark navy panel with a frosted-glass layer (balance cards, login hero) */
+/* Ink panel for balances (Tipon's navy), with a band of "water" along the
+   bottom like the pocket jars in the design. */
 .bank-hero {
   position: relative;
   overflow: hidden;
-  color: #F8FAFC;
-  background:
-    radial-gradient(120% 140% at 100% 0%, rgba(37, 99, 235, 0.55) 0%, rgba(37, 99, 235, 0) 55%),
-    radial-gradient(90% 120% at 0% 100%, rgba(202, 138, 4, 0.28) 0%, rgba(202, 138, 4, 0) 50%),
-    linear-gradient(135deg, var(--bank-navy-900) 0%, var(--bank-navy-800) 100%);
-  border-radius: 20px;
+  color: #F7FAF8;
+  background: var(--tipon-ink);
+  border-radius: var(--bank-radius);
+}
+
+.bank-hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--tipon-water), var(--tipon-sea));
+  pointer-events: none;
 }
 
 .bank-glass {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--bank-radius);
 }
 
 .bank-eyebrow {
@@ -439,8 +505,8 @@ a:focus-visible,
 
 .bank-amount {
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .text-credit { color: var(--bank-credit) !important; }
@@ -464,4 +530,10 @@ a:focus-visible,
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+}
+
+/* Customer-name rows that group accounts on the Accounts page */
+.q-table td.bank-group-row {
+  background: var(--bank-bg);
+  font-family: var(--tipon-display);
 }

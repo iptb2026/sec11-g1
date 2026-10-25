@@ -72,19 +72,21 @@ export default defineConfig((/* ctx */) => {
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
       config: {
-        // Banking palette (UI/UX Pro Max "Banking/Traditional Finance"): trust navy,
-        // premium gold accent, and AA-contrast green/red for money in/out.
+        // Tipon palette (Mordeno's design, tipon-bank.html): navy ink buttons,
+        // teal "sea" for money in, red for money out, mango accent.
+        // Keep these matching the --tipon-* / --bank-* values in src/css/app.css.
         brand: {
-          primary: '#1E3A8A',
-          secondary: '#0F172A',
-          accent: '#B8860B',
-          dark: '#0F172A',
-          positive: '#15803D',
-          negative: '#B91C1C',
-          info: '#1D4ED8',
-          warning: '#B45309'
+          primary: '#14213D',
+          secondary: '#1F7A6D',
+          accent: '#F2B632',
+          dark: '#0E1A1F',
+          positive: '#1F7A6D',
+          negative: '#B93A4B',
+          info: '#1F7A6D',
+          warning: '#8C5E00'
         },
-        notify: { position: 'top-right', timeout: 2500 }
+        // Tipon shows messages as a toast at the bottom centre
+        notify: { position: 'bottom', timeout: 4000 }
       },
 
       // iconSet: 'material-icons', // Quasar icon set
