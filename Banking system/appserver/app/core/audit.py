@@ -26,7 +26,6 @@ SKIPPED_MODELS = (AuditLog, LedgerEntry)
 
 
 def remember_request_user(db, user_id, request=None) -> None:
-    """Called once per request: who is acting, so the audit rows can say so."""
     db.info["audit_user_id"] = user_id
     if request is not None:
         db.info["audit_ip"] = request.client.host if request.client else None
@@ -64,7 +63,6 @@ def _changes(obj) -> tuple[dict, dict]:
 
 
 def _action(obj, kind: str, new: dict | None) -> str:
-    """CREATE/UPDATE/DELETE, with LOGIN/LOGOUT for sessions so the log reads naturally."""
     if isinstance(obj, UserSession):
         if kind == "CREATE":
             return "LOGIN"
