@@ -1,0 +1,33 @@
+# ==== LAYER 4: Transactions ====
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional, Literal
+
+from pydantic import BaseModel, Field
+
+
+class DepositCreate(BaseModel):
+    account_id: int
+    # Leave blank to let the server generate one (see app/core/references.py).
+    reference_number: Optional[str] = None
+    amount: Decimal = Field(gt=0)
+    deposit_channel: Literal["CASH", "ATM", "ONLINE", "INTERBANK"]
+    remarks: Optional[str] = None
+    # NOTE: transaction_date and deposited_by_user_id are set by the server
+    # (now, and the logged-in user), so a deposit can't be backdated or
+    # recorded in someone else's name.
+
+
+class DepositOut(BaseModel):
+    id: int
+    account_id: int
+    reference_number: str
+    amount: Decimal
+    deposit_channel: str
+    deposited_by_user_id: Optional[int] = None
+    remarks: Optional[str] = None
+    transaction_date: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

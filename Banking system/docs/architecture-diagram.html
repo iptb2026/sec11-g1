@@ -1,0 +1,130 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  body { margin: 0; background: #E8EFEC; font-family: 'Segoe UI', Arial, sans-serif; }
+  svg { display: block; }
+  .t { font-size: 15px; fill: #14213D; }
+  .h { font-size: 18px; font-weight: 700; fill: #14213D; }
+  .s { font-size: 13px; fill: #3E4C5E; }
+  .w { fill: #F7FAF8; }
+  .step { font-size: 13px; font-weight: 700; fill: #F7FAF8; }
+</style></head>
+<body>
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#14213D"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1F7A6D"/></marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="40" y="52" style="font-size:30px;font-weight:800;fill:#14213D">Mini Banking System (Tipon): infrastructure, technologies and transaction flow</text>
+  <text x="40" y="80" class="s">Every client goes through NGINX on the Ubuntu server; FastAPI listens on 127.0.0.1 only. Numbers 1–7 = a Send Money transaction from the phone and back.</text>
+
+  <!-- Clients -->
+  <text x="40" y="130" class="h">Clients</text>
+  <rect x="40" y="145" width="330" height="200" rx="14" fill="#F7FAF8" stroke="#C4D3CD" stroke-width="2"/>
+  <text x="60" y="178" class="h">Android phone</text>
+  <text x="60" y="203" class="t">Tipon Bank APK</text>
+  <text x="60" y="226" class="s">Quasar + Capacitor (Android)</text>
+  <text x="60" y="249" class="s">Customers only: Dashboard, My Accounts,</text>
+  <text x="60" y="270" class="s">Send Money, Transactions, Sign up</text>
+  <text x="60" y="300" class="s">API: http://127.0.0.1:8000/catarig/</text>
+  <text x="60" y="321" class="s">via USB tunnel: adb reverse tcp:8000 tcp:8000</text>
+
+  <rect x="40" y="380" width="330" height="190" rx="14" fill="#F7FAF8" stroke="#C4D3CD" stroke-width="2"/>
+  <text x="60" y="413" class="h">Web browser</text>
+  <text x="60" y="438" class="t">Quasar web app (Vue 3)</text>
+  <text x="60" y="461" class="s">All roles: Admin, Staff (teller),</text>
+  <text x="60" y="482" class="s">Auditor (read-only), Customer</text>
+  <text x="60" y="512" class="s">Opens http://localhost:8000/catarig-wui/</text>
+  <text x="60" y="533" class="s">API: http://localhost:8000/catarig/</text>
+
+  <!-- GitHub -->
+  <rect x="40" y="640" width="330" height="140" rx="14" fill="#F7FAF8" stroke="#C4D3CD" stroke-width="2"/>
+  <text x="60" y="673" class="h">GitHub (version control)</text>
+  <text x="60" y="698" class="s">iptb2026/sec11-g1 · branches + pull requests</text>
+  <text x="60" y="721" class="s">Server deploys with: git clone / git pull,</text>
+  <text x="60" y="742" class="s">npm ci + quasar build, make_env.py</text>
+  <line x1="370" y1="710" x2="455" y2="710" stroke="#14213D" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#a)"/>
+  <text x="380" y="700" class="s">deploy</text>
+
+  <!-- Ubuntu server -->
+  <rect x="460" y="110" width="1100" height="840" rx="18" fill="none" stroke="#14213D" stroke-width="2.5" stroke-dasharray="10 6"/>
+  <rect x="460" y="110" width="520" height="40" rx="12" fill="#14213D"/>
+  <text x="478" y="137" class="h" style="fill:#F7FAF8">Linux server · Ubuntu 24.04 (Docker: ipt2-g1-home)</text>
+
+  <!-- NGINX -->
+  <rect x="500" y="190" width="380" height="250" rx="14" fill="#14213D"/>
+  <text x="522" y="225" class="h w" style="fill:#F2B632">Gateway: NGINX  ·  port 8000</text>
+  <text x="522" y="258" class="t w" style="fill:#F7FAF8">location /catarig-wui/</text>
+  <text x="540" y="280" class="s" style="fill:#C4D3CD">→ serves the built web app</text>
+  <text x="540" y="300" class="s" style="fill:#C4D3CD">   /var/www/catarig-wui (static files)</text>
+  <text x="522" y="335" class="t w" style="fill:#F7FAF8">location /catarig/</text>
+  <text x="540" y="357" class="s" style="fill:#C4D3CD">→ reverse proxy to 127.0.0.1:5000</text>
+  <text x="540" y="377" class="s" style="fill:#C4D3CD">   (FastAPI under the /catarig prefix)</text>
+  <text x="522" y="415" class="s" style="fill:#C4D3CD">config: deploy/nginx-catarig-wui.conf</text>
+
+  <!-- FastAPI -->
+  <rect x="980" y="190" width="540" height="330" rx="14" fill="#F7FAF8" stroke="#1F7A6D" stroke-width="2.5"/>
+  <text x="1002" y="225" class="h">Backend: FastAPI via Uvicorn</text>
+  <text x="1002" y="250" class="s">127.0.0.1:5000 --root-path /catarig · supervisor service (catarig-api)</text>
+  <text x="1002" y="283" class="t">Endpoints (Swagger at /catarig/docs):</text>
+  <text x="1002" y="306" class="s">/auth (login, register, me, logout) · /accounts · /deposits</text>
+  <text x="1002" y="326" class="s">/withdrawals · /transfers · /interbank-transfers · /fee-records</text>
+  <text x="1002" y="346" class="s">/interest-records · /ledger-entries · /audit-logs · /users · /roles …</text>
+  <text x="1002" y="379" class="t">Rules:</text>
+  <text x="1002" y="402" class="s">JWT login + roles (Admin/Staff/Auditor/Customer) · validation (422)</text>
+  <text x="1002" y="422" class="s">funds, ₱500 SAVINGS minimum, daily limits, own-account checks</text>
+  <text x="1002" y="442" class="s">locks rows, writes the ledger + audit log in the same commit</text>
+  <text x="1002" y="475" class="s">SQLAlchemy ORM · Alembic migrations · Philippine time</text>
+
+  <!-- MySQL -->
+  <rect x="980" y="600" width="540" height="300" rx="14" fill="#F7FAF8" stroke="#C4D3CD" stroke-width="2"/>
+  <text x="1002" y="635" class="h">Database: MySQL 8 (schema catarig)</text>
+  <text x="1002" y="668" class="t">17 tables, e.g.:</text>
+  <text x="1002" y="692" class="s">users · roles · sessions · audit_logs</text>
+  <text x="1002" y="714" class="s">accounts · account_types · withdrawal_limits · interest_policies</text>
+  <text x="1002" y="736" class="s">deposits · withdrawals · transfers · interbank_transfers · banks</text>
+  <text x="1002" y="758" class="s">fee_records · interest_records · ledger_entries</text>
+  <text x="1002" y="792" class="t">Integrity:</text>
+  <text x="1002" y="815" class="s">CHECK balance ≥ 0 · foreign keys · unique references</text>
+  <text x="1002" y="837" class="s">verify.sql + account_balance_audit (balances = transactions)</text>
+  <text x="1002" y="870" class="s">port 3306, local to the server only</text>
+
+  <!-- Arrows: clients -> NGINX -->
+  <line x1="373" y1="245" x2="497" y2="270" stroke="#1F7A6D" stroke-width="3" marker-start="url(#g)" marker-end="url(#g)"/>
+  <text x="382" y="226" class="s" style="fill:#1F7A6D">USB :8000</text>
+  <line x1="373" y1="470" x2="497" y2="380" stroke="#14213D" stroke-width="2.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="380" y="505" class="s">HTTP :8000</text>
+
+  <!-- NGINX -> FastAPI -->
+  <line x1="883" y1="330" x2="977" y2="330" stroke="#1F7A6D" stroke-width="3" marker-start="url(#g)" marker-end="url(#g)"/>
+  <text x="886" y="318" class="s">proxy</text>
+  <!-- FastAPI -> MySQL -->
+  <line x1="1250" y1="523" x2="1250" y2="597" stroke="#1F7A6D" stroke-width="3" marker-start="url(#g)" marker-end="url(#g)"/>
+  <text x="1262" y="565" class="s">SQL (PyMySQL)</text>
+  <!-- return path -->
+  <text x="500" y="470" class="s" style="fill:#1F7A6D">Arrows go both ways: requests in, JSON responses back</text>
+  <text x="500" y="490" class="s" style="fill:#1F7A6D">along the same path (client ↔ NGINX ↔ FastAPI ↔ MySQL).</text>
+
+  <!-- Numbered flow -->
+  <rect x="500" y="620" width="440" height="300" rx="14" fill="#F7FAF8" stroke="#C4D3CD" stroke-width="2"/>
+  <text x="522" y="652" class="h">Send Money round trip (phone)</text>
+  <g>
+    <circle cx="536" cy="682" r="12" fill="#1F7A6D"/><text x="531" y="687" class="step">1</text>
+    <text x="558" y="687" class="s">Customer taps Send Money on the phone</text>
+    <circle cx="536" cy="714" r="12" fill="#1F7A6D"/><text x="531" y="719" class="step">2</text>
+    <text x="558" y="719" class="s">POST /catarig/transfers/ (JWT) → NGINX :8000</text>
+    <circle cx="536" cy="746" r="12" fill="#1F7A6D"/><text x="531" y="751" class="step">3</text>
+    <text x="558" y="751" class="s">NGINX proxies to FastAPI 127.0.0.1:5000</text>
+    <circle cx="536" cy="778" r="12" fill="#1F7A6D"/><text x="531" y="783" class="step">4</text>
+    <text x="558" y="783" class="s">FastAPI checks owner, funds, minimum balance</text>
+    <circle cx="536" cy="810" r="12" fill="#1F7A6D"/><text x="531" y="815" class="step">5</text>
+    <text x="558" y="815" class="s">MySQL: transfer + 2 ledger rows + balances + audit</text>
+    <circle cx="536" cy="842" r="12" fill="#1F7A6D"/><text x="531" y="847" class="step">6</text>
+    <text x="558" y="847" class="s">201 response: reference TR… back to the phone</text>
+    <circle cx="536" cy="874" r="12" fill="#1F7A6D"/><text x="531" y="879" class="step">7</text>
+    <text x="558" y="879" class="s">App GETs /accounts + /transfers: new balance shown</text>
+  </g>
+</svg>
+</body></html>
