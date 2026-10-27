@@ -30,8 +30,7 @@
           </div>
         </div>
         <div class="row q-gutter-sm q-mt-lg">
-          <q-btn unelevated no-caps color="white" text-color="primary" icon="send" label="Send money" to="/send-money" />
-          <q-btn outline no-caps color="white" icon="credit_card" label="View accounts" to="/my-account" />
+          <q-btn unelevated no-caps color="white" text-color="primary" icon="credit_card" label="View accounts" to="/my-account" />
           <q-btn outline no-caps color="white" icon="receipt_long" label="Transaction history" to="/my-transactions" />
         </div>
       </section>

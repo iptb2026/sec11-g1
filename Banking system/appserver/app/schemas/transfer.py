@@ -3,26 +3,17 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 class TransferCreate(BaseModel):
     source_account_id: int
-    # Either the destination's id (staff screens) or its account number
-    # (customers' Send Money: they can't see other accounts' ids).
-    destination_account_id: Optional[int] = None
-    destination_account_number: Optional[str] = None
+    destination_account_id: int
     # Leave blank to let the server generate one (see app/core/references.py).
     transfer_reference: Optional[str] = None
     amount: Decimal = Field(gt=0)
     transfer_type: Literal["INTERNAL", "SCHEDULED"] = "INTERNAL"
     remarks: Optional[str] = None
-
-    @model_validator(mode="after")
-    def needs_a_destination(self):
-        if self.destination_account_id is None and not (self.destination_account_number or "").strip():
-            raise ValueError("destination_account_id or destination_account_number is required")
-        return self
 
 
 class TransferOut(BaseModel):

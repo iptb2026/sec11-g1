@@ -50,9 +50,6 @@ reference_data = [allow_roles(read=STAFF_READERS, write=ADMIN_ONLY)]
 staff_work = [allow_roles(read=STAFF_READERS, write=ADMIN_STAFF)]
 customer_readable = [allow_roles(read=ALL_ROLES, write=ADMIN_STAFF)]
 users_policy = [allow_roles(read=ALL_ROLES, write=("ADMIN", "STAFF", "CUSTOMER"))]
-# Customers may create transfers (Send Money) from their own accounts only;
-# routers/transfers.py checks that, and keeps edit/reverse staff-only.
-transfer_policy = [allow_roles(read=ALL_ROLES, write=("ADMIN", "STAFF", "CUSTOMER"))]
 
 # ==== LAYER 1: Foundation & Reference Data ====
 app.include_router(roles.router, dependencies=reference_data)
@@ -74,7 +71,7 @@ app.include_router(interest_policies.router, dependencies=staff_work)
 # ==== LAYER 4: Transactions ====
 app.include_router(deposits.router, dependencies=customer_readable)
 app.include_router(withdrawals.router, dependencies=customer_readable)
-app.include_router(transfers.router, dependencies=transfer_policy)
+app.include_router(transfers.router, dependencies=customer_readable)
 app.include_router(interbank_transfers.router, dependencies=customer_readable)
 
 # ==== LAYER 5: Financial Records & Ledger ====

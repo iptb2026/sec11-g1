@@ -40,7 +40,6 @@ const routes = [
       // --- CUSTOMER: self-service ---
       { path: 'my-account', component: () => import('@/pages/customer/MyAccountPage.vue'), meta: { roles: ['CUSTOMER'] } },
       { path: 'my-transactions', component: () => import('@/pages/customer/MyTransactionsPage.vue'), meta: { roles: ['CUSTOMER'] } },
-      { path: 'send-money', component: () => import('@/pages/customer/SendMoneyPage.vue'), meta: { roles: ['CUSTOMER'] } },
     ],
   },
 
