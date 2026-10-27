@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.db_utils import commit_money
 from app.core.money import credit, debit, ensure_active, ensure_funds, ensure_minimum_balance, reject_money_edits
 from app.core.references import resolve_reference
-from app.core.security import ADMIN_STAFF, get_current_user, own_account_ids, roles_required
+from app.core.security import get_current_user, own_account_ids
 from app.core.timeutil import utc_now
 from app.database.session import get_db
 from app.models.account import Account
@@ -34,22 +34,7 @@ def lock_both(db: Session, source_id: int, destination_id: int):
 
 
 @router.post("/", response_model=TransferOut, status_code=status.HTTP_201_CREATED)
-def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    Staff move money between any accounts. A customer (Send Money) may only
-    send from one of their own accounts, to any active account by number.
-    """
-    if transfer.destination_account_id is None:
-        number = transfer.destination_account_number.strip()
-        destination_row = db.query(Account.id).filter(Account.account_number == number).first()
-        if not destination_row:
-            raise HTTPException(status_code=400, detail=f"No account with number {number}")
-        transfer.destination_account_id = destination_row.id
-
-    own_ids = own_account_ids(current_user, db)  # None for staff, the customer's own ids otherwise
-    if own_ids is not None and transfer.source_account_id not in own_ids:
-        raise HTTPException(status_code=403, detail="You can only send money from your own accounts")
-
+def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
     if transfer.source_account_id == transfer.destination_account_id:
         raise HTTPException(status_code=400, detail="source and destination accounts must be different")
 
@@ -68,7 +53,7 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db), cur
 
     now = utc_now()
     transfer.transfer_reference = resolve_reference(db, Transfer.transfer_reference, transfer.transfer_reference, "TR", "transfer_reference", now)
-    new_transfer = Transfer(**transfer.model_dump(exclude={"destination_account_number"}), status="SUCCESS", completed_at=now)
+    new_transfer = Transfer(**transfer.model_dump(), status="SUCCESS", completed_at=now)
     db.add(new_transfer)
 
     # Move the money: debit source, credit destination — both accounts,
@@ -99,7 +84,7 @@ def get_transfer(transfer_id: int, db: Session = Depends(get_db), current_user: 
     return transfer
 
 
-@router.put("/{transfer_id}", response_model=TransferOut, dependencies=[roles_required(ADMIN_STAFF)])
+@router.put("/{transfer_id}", response_model=TransferOut)
 def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depends(get_db)):
     """Fixes the descriptive fields only; the amount and the accounts cannot change (see deposits.py)."""
     transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
@@ -108,7 +93,7 @@ def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depend
 
     if not (data.transfer_reference or "").strip():
         data.transfer_reference = transfer.transfer_reference  # blank keeps the current one
-    fields = data.model_dump(exclude={"destination_account_number"})
+    fields = data.model_dump()
     reject_money_edits(transfer, fields, ("source_account_id", "destination_account_id", "amount"))
 
     duplicate = db.query(Transfer).filter(
@@ -125,7 +110,7 @@ def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depend
     return transfer
 
 
-@router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[roles_required(ADMIN_STAFF)])
+@router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_transfer(transfer_id: int, db: Session = Depends(get_db)):
     """Reverses the transfer: the amount moves back from the destination to the source (ledger REVERSAL on both)."""
     transfer = db.query(Transfer).filter(Transfer.id == transfer_id).with_for_update().first()
