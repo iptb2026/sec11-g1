@@ -36,7 +36,7 @@ python seed.py
 
 ```powershell
 alembic stamp 0001_baseline   # tables made before 2026-10-24 (like catarig)
-alembic upgrade head          # adds the balance floor (0002_balance_checks)
+alembic upgrade head          # adds the balance floor (0002) and deposit approval (0003)
 python seed.py                # only adds what is missing
 ```
 
