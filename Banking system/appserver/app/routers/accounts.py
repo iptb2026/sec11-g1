@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
 from app.core.money import credit
-from app.core.security import get_current_user, own_account_ids
+from app.core.security import get_current_user, own_account_ids, role_code_of
 from app.core.timeutil import philippine_today, utc_now
 from app.database.session import get_db
 from app.models.account import Account
@@ -37,11 +37,18 @@ def opening_reference(account: Account) -> str:
     return f"OPEN-{account.account_number}"
 
 
-@router.post("/", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
-def create_account(account: AccountCreate, db: Session = Depends(get_db)):
-    customer = db.query(User).filter(User.id == account.customer_id).first()
+def ensure_customer(db: Session, customer_id: int) -> None:
+    """Only a user with the CUSTOMER role can own a bank account."""
+    customer = db.query(User).filter(User.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=400, detail="customer_id does not exist")
+    if role_code_of(customer, db) != "CUSTOMER":
+        raise HTTPException(status_code=400, detail="customer_id must be a user with the CUSTOMER role")
+
+
+@router.post("/", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
+def create_account(account: AccountCreate, db: Session = Depends(get_db)):
+    ensure_customer(db, account.customer_id)
 
     account_type = db.query(AccountType).filter(AccountType.id == account.account_type_id).first()
     if not account_type:
@@ -127,9 +134,10 @@ def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(g
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
 
-    customer = db.query(User).filter(User.id == data.customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=400, detail="customer_id does not exist")
+    # Moving the account to another owner: the new owner must be a customer.
+    # Keeping the current owner is always allowed, so older rows stay editable.
+    if data.customer_id != account.customer_id:
+        ensure_customer(db, data.customer_id)
 
     account_type = db.query(AccountType).filter(AccountType.id == data.account_type_id).first()
     if not account_type:
