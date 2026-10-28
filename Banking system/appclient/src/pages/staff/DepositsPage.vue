@@ -119,7 +119,7 @@ const form = ref(emptyForm())
 
 const accountHolderName = computed(() => accountHolderByAccountId.value[form.value.account_id] || '')
 
-const channelOptions = ['CASH', 'ATM', 'ONLINE', 'INTERBANK']
+const channelOptions = ['CASH', 'ONLINE', 'INTERBANK']
 const filteredChannelOptions = ref(channelOptions)
 function filterChannelOptions (val, update) {
   update(() => {
