@@ -26,6 +26,9 @@ class DepositOut(BaseModel):
     deposit_channel: str
     deposited_by_user_id: Optional[int] = None
     remarks: Optional[str] = None
+    status: str
+    reviewed_by_user_id: Optional[int] = None
+    reviewed_at: Optional[datetime] = None
     transaction_date: datetime
     created_at: datetime
 

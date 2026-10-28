@@ -14,7 +14,8 @@
 --
 -- How expected_balance is built â€” it mirrors what the API routers do:
 --   + account type's opening_deposit   (accounts.py sets this on create)
---   + deposits                          (deposits.py)
+--   + deposits                          (deposits.py; only COMPLETED —
+--                                        PENDING/REJECTED moved no money)
 --   - withdrawals                       (withdrawals.py)
 --   - fee records                       (fee_records.py)
 --   + interest records                  (interest_records.py)
@@ -66,7 +67,7 @@ FROM accounts a
 JOIN users u          ON u.id = a.customer_id
 JOIN account_types at ON at.id = a.account_type_id
 LEFT JOIN (SELECT account_id, SUM(amount) AS total
-           FROM deposits GROUP BY account_id) d
+           FROM deposits WHERE status = 'COMPLETED' GROUP BY account_id) d
        ON d.account_id = a.id
 LEFT JOIN (SELECT account_id, SUM(amount) AS total
            FROM withdrawals GROUP BY account_id) w

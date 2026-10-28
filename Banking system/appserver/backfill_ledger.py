@@ -59,7 +59,7 @@ def events_for(db, account: Account) -> list[Event]:
     if opening:
         events.append(Event(account.opened_at, 0, opening_reference(account), "DEPOSIT", ZERO, opening))
 
-    for d in db.query(Deposit).filter(Deposit.account_id == account.id):
+    for d in db.query(Deposit).filter(Deposit.account_id == account.id, Deposit.status == "COMPLETED"):
         events.append(Event(d.transaction_date, 1, d.reference_number, "DEPOSIT", ZERO, d.amount))
     for w in db.query(Withdrawal).filter(Withdrawal.account_id == account.id):
         events.append(Event(w.transaction_date, 1, w.reference_number, "WITHDRAWAL", w.amount, ZERO))
