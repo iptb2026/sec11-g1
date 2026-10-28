@@ -120,6 +120,9 @@ erDiagram
         decimal amount
         enum deposit_channel
         bigint deposited_by_user_id FK
+        enum status
+        bigint reviewed_by_user_id FK
+        datetime reviewed_at
         text remarks
         datetime transaction_date
         timestamp created_at
@@ -205,6 +208,7 @@ erDiagram
     users ||--o{ sessions : "user_id"
     accounts ||--o{ deposits : "account_id"
     users |o--o{ deposits : "deposited_by_user_id"
+    users |o--o{ deposits : "reviewed_by_user_id"
     accounts ||--o{ fee_records : "account_id"
     fee_types ||--o{ fee_records : "fee_type_id"
     accounts ||--o{ interbank_transfers : "source_account_id"
@@ -224,7 +228,7 @@ erDiagram
 - `transfers` points at `accounts` twice: `source_account_id` (money out) and `destination_account_id` (money in).
 - `interbank_transfers` has no destination account in this database; the receiving account lives at the other bank, so it is stored as plain text in `target_account_number`.
 - `withdrawal_limits.account_id` is unique, so each account has at most one limit row.
-- `audit_logs.user_id`, `deposits.deposited_by_user_id` and `withdrawals.approved_by_user_id` are optional (nullable), so those rows can exist without a linked user.
+- `audit_logs.user_id`, `deposits.deposited_by_user_id`, `deposits.reviewed_by_user_id` and `withdrawals.approved_by_user_id` are optional (nullable), so those rows can exist without a linked user.
 - `ledger_entries.transaction_reference` and `fee_records.transaction_reference` are plain text, not foreign keys; they hold the reference number of the deposit, withdrawal or transfer they belong to.
 - `accounts.available_balance` and `accounts.ledger_balance` have a `CHECK (>= 0)` constraint (migration `0002_balance_checks`), so MySQL refuses any change that would make a balance negative.
 - Every balance change writes one `ledger_entries` row (since PR #19); older transactions get theirs from `appserver/backfill_ledger.py`.

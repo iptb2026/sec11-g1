@@ -12,8 +12,21 @@
           <template #append><q-icon name="search" /></template>
         </q-input>
       </template>
+      <template #body-cell-status="props">
+        <q-td :props="props">
+          <q-badge :color="statusColor[props.row.status] || 'grey-7'">{{ statusLabel[props.row.status] || props.row.status }}</q-badge>
+        </q-td>
+      </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
+          <template v-if="isAdmin && props.row.status === 'PENDING'">
+            <q-btn dense flat round icon="check_circle" aria-label="Approve" color="positive" @click="review(props.row, 'approve')">
+              <q-tooltip>Approve: the money enters the account</q-tooltip>
+            </q-btn>
+            <q-btn dense flat round icon="cancel" aria-label="Reject" color="negative" @click="review(props.row, 'reject')">
+              <q-tooltip>Reject: no money moves</q-tooltip>
+            </q-btn>
+          </template>
           <q-btn dense flat round icon="edit" aria-label="Edit" color="primary" @click="openEdit(props.row)" />
           <q-btn dense flat round icon="delete" aria-label="Delete" color="negative" @click="removeRow(props.row)" />
         </q-td>
@@ -56,7 +69,7 @@
             <q-input v-model="form.reference_number" label="Reference Number" filled />
             <q-input v-model.number="form.amount" :rules="[positiveAmount]" lazy-rules label="Amount" type="number" filled
               :readonly="!!editingId"
-              :hint="editingId ? 'Account and amount cannot change. Delete it (which reverses it) and record a new one instead.' : ''"
+              :hint="amountHint"
             />
             <q-select
               v-model="form.deposit_channel" :rules="[required]" lazy-rules
@@ -88,11 +101,18 @@ import { useQuasar } from 'quasar'
 import { tableColumns } from '@/utils/tableColumns'
 import api from '@/services/api'
 import { useCanWrite } from '@/utils/permissions'
+import { useAuthStore } from '@/stores/auth-store'
 import { errorMessage } from '@/utils/notify-error'
 import { required, positiveAmount } from '@/utils/validation'
 
 const $q = useQuasar()
 const canWrite = useCanWrite()
+const isAdmin = useAuthStore().isAdmin
+
+// Staff deposits of this amount or more wait for an admin (LARGE_DEPOSIT_THRESHOLD on the server).
+const APPROVAL_THRESHOLD = 50000
+const statusLabel = { PENDING: 'Pending approval', COMPLETED: 'Completed', REJECTED: 'Rejected' }
+const statusColor = { PENDING: 'warning', COMPLETED: 'positive', REJECTED: 'negative' }
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
@@ -102,6 +122,7 @@ const columns = [
   { name: 'reference_number', label: 'Reference', field: 'reference_number', align: 'left' },
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
   { name: 'deposit_channel', label: 'Channel', field: 'deposit_channel', align: 'left' },
+  { name: 'status', label: 'Status', field: 'status', align: 'left' },
   { name: 'transaction_date', label: 'Date', field: 'transaction_date', align: 'left' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
@@ -119,7 +140,13 @@ const form = ref(emptyForm())
 
 const accountHolderName = computed(() => accountHolderByAccountId.value[form.value.account_id] || '')
 
-const channelOptions = ['CASH', 'ATM', 'ONLINE', 'INTERBANK']
+const amountHint = computed(() => {
+  if (editingId.value) return 'Account and amount cannot change. Delete it (which reverses it) and record a new one instead.'
+  if (!isAdmin && form.value.amount >= APPROVAL_THRESHOLD) return `₱${APPROVAL_THRESHOLD.toLocaleString()} or more needs an admin's approval before it reaches the account.`
+  return ''
+})
+
+const channelOptions = ['CASH', 'ONLINE', 'INTERBANK']
 const filteredChannelOptions = ref(channelOptions)
 function filterChannelOptions (val, update) {
   update(() => {
@@ -194,17 +221,43 @@ async function save () {
       ({ data: saved } = await api.post('/deposits/', form.value))
     }
     showDialog.value = false
-    $q.notify({ type: 'positive', message: `Deposit ${saved.reference_number} saved` })
+    if (saved.status === 'PENDING') {
+      $q.notify({ type: 'warning', message: `Deposit ${saved.reference_number} is waiting for an admin's approval` })
+    } else {
+      $q.notify({ type: 'positive', message: `Deposit ${saved.reference_number} saved` })
+    }
     loadRows()
   } catch (err) {
     $q.notify({ type: 'negative', message: errorMessage(err, 'Save failed') })
   }
 }
 
+function review (row, action) {
+  const approving = action === 'approve'
+  $q.dialog({
+    title: approving ? 'Approve Deposit' : 'Reject Deposit',
+    message: approving
+      ? `Approve ${row.reference_number} for ₱${Number(row.amount).toLocaleString()}? The money enters account ${accountNumberByAccountId.value[row.account_id] || ''}.`
+      : `Reject ${row.reference_number}? No money moves, and the deposit stays on record as rejected.`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      await api.post(`/deposits/${row.id}/${action}`)
+      $q.notify({ type: 'positive', message: approving ? 'Deposit approved' : 'Deposit rejected' })
+      loadRows()
+    } catch (err) {
+      $q.notify({ type: 'negative', message: errorMessage(err, approving ? 'Approve failed' : 'Reject failed') })
+    }
+  })
+}
+
 function removeRow (row) {
   $q.dialog({
     title: 'Confirm Delete',
-    message: `Delete deposit "${row.reference_number}"? The amount leaves the account again.`,
+    message: row.status === 'COMPLETED'
+      ? `Delete deposit "${row.reference_number}"? The amount leaves the account again.`
+      : `Delete deposit "${row.reference_number}"? It never reached the account, so no money moves.`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {

@@ -5,6 +5,7 @@ this file: they come from environment variables, or from a `.env` file in
 and fill it in. A real environment variable wins over the same key in `.env`.
 """
 import os
+from decimal import Decimal
 from pathlib import Path
 
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
@@ -57,6 +58,11 @@ class Settings:
     SECRET_KEY: str = _required("SECRET_KEY")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+    # --- Deposits ---
+    # A deposit of this amount or more, recorded by staff, stays PENDING until
+    # an admin approves it, so one teller alone can't create a large balance.
+    LARGE_DEPOSIT_THRESHOLD: Decimal = Decimal(os.environ.get("LARGE_DEPOSIT_THRESHOLD", "50000"))
 
     # --- App ---
     APP_NAME: str = "Mini Banking System API"

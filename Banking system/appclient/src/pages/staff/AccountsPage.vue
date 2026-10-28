@@ -173,7 +173,12 @@ async function loadRows () {
 
 async function loadOptions () {
   const { data: users } = await api.get('/users/')
-  customerOptions.value = users.map((u) => ({ label: `${u.username} (${u.first_name} ${u.last_name})`, value: u.id }))
+  const { data: roles } = await api.get('/roles/')
+  // Only customers can own a bank account, so admin/staff/auditor users are left out.
+  const customerRole = roles.find((r) => r.role_code === 'CUSTOMER')
+  customerOptions.value = users
+    .filter((u) => customerRole && u.role_id === customerRole.id)
+    .map((u) => ({ label: `${u.username} (${u.first_name} ${u.last_name})`, value: u.id }))
   customerNameById.value = Object.fromEntries(users.map((u) => [u.id, `${u.first_name} ${u.last_name}`]))
 
   const { data: types } = await api.get('/account-types/')

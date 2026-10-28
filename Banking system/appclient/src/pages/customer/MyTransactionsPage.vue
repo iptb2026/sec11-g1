@@ -138,7 +138,8 @@ onMounted(async () => {
     const combined = []
 
     for (const d of deposits.data) {
-      if (myAccountIds.includes(d.account_id)) {
+      // A pending or rejected deposit hasn't put money in the account.
+      if (myAccountIds.includes(d.account_id) && d.status === 'COMPLETED') {
         combined.push({
           key: `dep-${d.id}`,
           date: d.transaction_date,
